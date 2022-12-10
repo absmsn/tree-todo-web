@@ -1,0 +1,30 @@
+.container {
+  display: flex;
+  justify-content: end;
+  height: 42px;
+  box-shadow: 0 0 8px #cfcfcf;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.iconArea {
+  display: flex;
+  align-items: center;
+  margin-right: 6px;
+}
+
+.iconWrapper {
+  display: flex;
+  margin: 0 2px;
+  padding: 8px;
+}
+  
+.iconWrapper:hover {
+  border-radius: 10%;
+  background-color: #e6f7ff;
+}
+
+.mapSelect {
+  display: flex;
+  align-items: center;
+  margin-right: 8px;
+}
