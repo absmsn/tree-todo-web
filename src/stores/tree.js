@@ -19,7 +19,7 @@ export default class TreeStore {
 
   constructor(firstNode, nodeStyle) {
     this.id = geneID();
-    this.nodeStyle = {...nodeStyle, ...this.nodeStyle};
+    this.nodeStyle = {...this.nodeStyle, ...nodeStyle};
     const node = new NodeStore(defaultNodeName, firstNode, this.nodeStyle);
     node.depth = 0;
     this.root = node;

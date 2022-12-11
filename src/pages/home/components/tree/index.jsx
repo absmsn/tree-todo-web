@@ -11,6 +11,7 @@ import { useEffect } from "react";
 import eventChannel from "../../../../utils/event";
 import { NODE_ADD_CHILD } from "../../../../constants/event";
 import { ROOT_NODE_DEFAULT_SIZE } from "../../../../constants/geometry";
+import { throttle } from "lodash";
 
 const reArrangeTree = (tree) => {
   const nodes = tree.nodes.map((node) => ({
@@ -33,11 +34,11 @@ const reArrangeTree = (tree) => {
         tree.nodes[i].changePosition(nodes[i].x, nodes[i].y);
       }
     })
-    .on("tick", () => {
+    .on("tick", throttle(() => {
       for (let i = 0; i < nodes.length; i++) {
         tree.nodes[i].changePosition(nodes[i].x, nodes[i].y);
       }
-    })
+    }, 50))
     .force("link", forceLink(links)
       .id(d => d.id)
       .distance(2 * ROOT_NODE_DEFAULT_SIZE + 10))
@@ -50,7 +51,11 @@ const reArrangeTree = (tree) => {
 
 export default observer(function Tree({ tree, scale }) {
   useEffect(() => {
-    const onAddNode = () => reArrangeTree(tree);
+    const onAddNode = (treeID) => {
+      if (treeID === tree.id) {
+        reArrangeTree(tree)
+      }
+    };
     eventChannel.on(NODE_ADD_CHILD, onAddNode);
     return (() => {
       eventChannel.removeListener(NODE_ADD_CHILD, onAddNode);
@@ -62,7 +67,8 @@ export default observer(function Tree({ tree, scale }) {
       {
         tree.nodes.map(node => 
           <Node
-            node={node} 
+            node={node}
+            tree={tree}
             key={node.id} 
             scale={scale}
           />
@@ -70,7 +76,7 @@ export default observer(function Tree({ tree, scale }) {
       }
       {
         tree.edges.map(edge => 
-          <Edge edge={edge} key={edge.edgeID} />
+          <Edge edge={edge} key={edge.id} />
         )
       }
     </g>

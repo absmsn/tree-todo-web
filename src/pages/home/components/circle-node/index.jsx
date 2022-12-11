@@ -1,30 +1,30 @@
 import { useState, useEffect, useRef } from "react";
 import { observer } from "mobx-react";
-import eventChannel from "../../../../utils/event";
-import {
-  NODE_RIGHT_CLICK
-} from "../../../../constants/event";
+import NodeMenu from "../node-menu";
 
-export default observer(function CircleNode({ node, scale }) {
-  const input = useRef(null);
+export default observer(function CircleNode({ node, tree, scale }) {
+  const inputRef = useRef(null);
+  const containerRef = useRef(null);
+  const [isMenuShow, setIsMenuShow] = useState(false);
   const [isMouseDown, setIsMouseDown] = useState(false);
-  const [titleInputShow, setTitleInputShow] = useState(true);
+  const [isTitleInputShow, setIsTitleInputShow] = useState(true);
   const [prevMousePos] = useState({x: 0, y: 0});
+  const [menuPos, setMenuPos] = useState({x: 0, y: 0});
   const [foreignSize, setForeignSize] = useState({width: node.r * 2, height: 0});
   const inputLength = node.r * 2;
 
   useEffect(() => {
-    if (titleInputShow) {
+    if (isTitleInputShow) {
       setForeignSize({
-        width: input.current.offsetWidth,
-        height: input.current.offsetHeight
+        width: inputRef.current.offsetWidth,
+        height: inputRef.current.offsetHeight
       });
-      input.current.select();
+      inputRef.current.select();
       const onKeyUp = e => {
         // 输入回车，关闭输入框
         if (e.key === "Enter") {
-          node.changeTitle(input.current.value);
-          setTitleInputShow(false);
+          node.changeTitle(inputRef.current.value);
+          setIsTitleInputShow(false);
         }
       }
       document.addEventListener("keyup", onKeyUp);
@@ -32,7 +32,7 @@ export default observer(function CircleNode({ node, scale }) {
         document.removeEventListener("keyup", onKeyUp);
       });
     }
-  }, [titleInputShow]);
+  }, [isTitleInputShow]);
 
   const onMouseDown = e => {
     if (e.button === 0) {
@@ -68,8 +68,8 @@ export default observer(function CircleNode({ node, scale }) {
       if (isMouseDown) {
         setIsMouseDown(false);
       }
-      if (!titleInputShow && e.detail === 2) { // 双击
-        setTitleInputShow(true);
+      if (!isTitleInputShow && e.detail === 2) { // 双击
+        setIsTitleInputShow(true);
       }
     }
   }
@@ -82,11 +82,20 @@ export default observer(function CircleNode({ node, scale }) {
   }
 
   const onContextMenu = e => {
-    eventChannel.emit(NODE_RIGHT_CLICK, e, node.id);
+    e.preventDefault();
+    e.stopPropagation();
+    if (!isMenuShow) {
+      setIsMenuShow(true);
+      setMenuPos({
+        x: e.clientX,
+        y: e.clientY
+      });
+    }
   }
  
   return (
     <g
+      ref={containerRef}
       onMouseDown={onMouseDown}
       onMouseMove={onMouseMove}
       onMouseUp={onMouseUp}
@@ -124,7 +133,7 @@ export default observer(function CircleNode({ node, scale }) {
         />
       }
       {
-        titleInputShow && <foreignObject
+        isTitleInputShow && <foreignObject
           x={node.x}
           y={node.y}
           width={foreignSize.width}
@@ -132,13 +141,23 @@ export default observer(function CircleNode({ node, scale }) {
           transform={`translate(${-foreignSize.width / 2} ${-foreignSize.height / 2})`}
         >
           <input 
-            ref={input}
+            ref={inputRef}
             value={node.title}
             style={{ width: inputLength }}
-            onBlur={() => setTitleInputShow(false)}
+            onBlur={() => setIsTitleInputShow(false)}
             onChange={e => node.changeTitle(e.target.value) }
           />
         </foreignObject>
+      }
+      {
+        isMenuShow && <NodeMenu
+            x={menuPos.x}
+            y={menuPos.y}
+            node={node}
+            tree={tree}
+            isMenuShow={isMenuShow}
+            setIsMenuShow={setIsMenuShow}
+          />
       }
     </g>
   )

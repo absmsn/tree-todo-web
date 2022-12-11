@@ -2,7 +2,7 @@ import { makeAutoObservable } from "mobx";
 import { geneID } from "../utils";
 
 export default class EdgeStore {
-  edgeID = geneID();
+  id = geneID();
 
   source = null;
 

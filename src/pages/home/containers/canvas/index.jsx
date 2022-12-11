@@ -4,10 +4,10 @@ import { useThrottle } from "../../../../hooks";
 import { Dropdown, Modal, Form, Input } from "antd";
 import { CheckOutlined } from "@ant-design/icons"
 import FloatPanel from "../../components/float-panel";
-import CanvasMenu from "../canvas-menu";
 import Tree from "../../components/tree";
 import { ROOT_NODE_DEFAULT_SIZE } from "../../../../constants/geometry";
 import style from "./style.module.css";
+import { randonBgColor } from "../../../../utils";
 
 const Canvas = observer(({ map }) => {
   const container = useRef(null);
@@ -75,6 +75,8 @@ const Canvas = observer(({ map }) => {
           x: ((clientX - offsetLeft - offsetX) / canvasWidth) * viewBoxWidth + viewBoxLeft,
           y: ((clientY - offsetTop - offsetY) / canvasHeight) * viewBoxHeight + viewBoxTop,
           r: ROOT_NODE_DEFAULT_SIZE
+        }, {
+          stroke: randonBgColor()
         });
         break;
       case "list-view":
@@ -171,7 +173,6 @@ const Canvas = observer(({ map }) => {
           setIsMouseZoom={setIsMouseZoom}
         />
       </div>
-      <CanvasMenu map={map} />
     </div>
   )
 });
