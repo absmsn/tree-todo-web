@@ -1,6 +1,7 @@
 .mainContainer {
   position: relative;
   overflow: hidden;
+  background-color: var(--bgColor);
 }
 
 .floatPanelContainer {

@@ -1,0 +1,12 @@
+.tagArea {
+  margin-bottom: 10px;
+  max-width: 240px;
+}
+
+.tag, .tagInput {
+  margin: 2px;
+}
+
+.tagInput {
+  width: 48px;
+}

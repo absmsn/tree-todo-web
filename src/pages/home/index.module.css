@@ -1,0 +1,19 @@
+.mainContainer {
+  display: flex;
+  flex-direction: column;
+}
+
+.canvasWrapper {
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 0;
+}
+
+.footWrapper {
+  border-top: 1px solid var(--border-shadow-color);
+}
+
+.taskListWrapper {
+  height: 100%;
+  border-left: 1px solid var(--border-shadow-color);
+}

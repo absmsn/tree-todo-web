@@ -1,0 +1,31 @@
+.innerContainer {
+  display: flex;
+  width: 96px;
+  height: 128px;
+  background-color: var(--bgColor);
+  border-radius: 10px;
+  flex-direction: column;
+}
+
+.toolbar {
+  flex: 0 0 16px;
+  margin-bottom: 2px;
+}
+
+.toolbarIcon {
+  margin: 2px;
+  padding: 4px;
+  font-size: 12px;
+  float: right;
+}
+
+.toolbarIcon:hover {
+  background-color: var(--hover-bgColor);
+  border-radius: 10%;
+}
+
+.textArea {
+  flex: 1 1 auto;
+  width: 100%;
+  resize: none;
+}

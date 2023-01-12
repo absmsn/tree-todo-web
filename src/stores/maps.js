@@ -10,9 +10,10 @@ export default class MapsStore {
     makeAutoObservable(this);
   }
 
-  add(name) {
-    const map = new MapStore(name);
+  add(name, tree) {
+    const map = new MapStore(name, tree);
     this.maps.push(map);
+    return map;
   }
 
   remove(id) {
@@ -20,5 +21,9 @@ export default class MapsStore {
     if (i !== -1) {
       this.maps.splice(i, 1);
     }
+  }
+
+  setSelectedMap(map) {
+    this.selectedMap = map;
   }
 }

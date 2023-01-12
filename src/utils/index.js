@@ -13,6 +13,6 @@ export function randomColorHSL(minH = 0, maxH = 360, minS = 0, maxS = 100,minL =
   return `hsl(${h},${s}%,${l}%)`;
 }
 
-export function randonBgColor() {
+export function randomBgColor() {
   return randomColorHSL(0, 360, 0, 100, 0, 60);
 }

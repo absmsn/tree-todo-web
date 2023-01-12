@@ -1,5 +1,5 @@
 {
-  "name": "tree-todo",
+  "name": "tree-todo-web",
   "version": "0.1.0",
   "private": true,
   "dependencies": {
@@ -9,10 +9,13 @@
     "@testing-library/user-event": "^13.5.0",
     "antd": "^5.0.3",
     "d3-force": "^3.0.0",
+    "d3-polygon": "^3.0.1",
+    "dayjs": "^1.11.7",
     "eventemitter3": "^5.0.0",
     "lodash": "^4.17.21",
-    "mobx": "^6.6.2",
+    "mobx": "^6.7.0",
     "mobx-react": "^7.6.0",
+    "re-resizable": "^6.9.9",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-router": "^6.4.3",
@@ -50,6 +53,7 @@
   },
   "devDependencies": {
     "customize-cra": "^1.0.0",
-    "react-app-rewired": "^2.2.1"
+    "react-app-rewired": "^2.2.1",
+    "tailwindcss": "^3.2.4"
   }
 }

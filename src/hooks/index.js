@@ -1,4 +1,4 @@
-import { useEffect, useCallback, useRef } from "react";
+import { useEffect, useCallback, useRef, useState } from "react";
 
 export function useThrottle(fn, delay, dep = []) {
   const { current } = useRef({ fn, timer: null });
@@ -16,7 +16,7 @@ export function useThrottle(fn, delay, dep = []) {
   }, dep);
 }
 
-function useDebounce(fn, delay, dep = []) {
+export function useDebounce(fn, delay, dep = []) {
   const { current } = useRef({ fn, timer: null });
   useEffect(function () {
     current.fn = fn;
@@ -30,4 +30,29 @@ function useDebounce(fn, delay, dep = []) {
       current.fn(...args);
     }, delay);
   }, dep)
+}
+
+export function usePortal(refCb) {
+  const domRef = useRef(document.createElement("div"));
+
+  useEffect(() => {
+    if (refCb) {
+      refCb.call(domRef);
+    } else {
+      domRef.current.style.position = "absolute";
+      domRef.current.style.left = 0;
+      domRef.current.style.top = 0;
+    }
+    document.body.appendChild(domRef.current);
+    return (() => {
+      document.body.removeChild(domRef.current);
+    });
+  }, []);
+  return domRef;
+}
+
+export function useSyncProp(prop) {
+  const [state, setState] = useState(prop);
+  useEffect(() => setState(prop), [prop]);
+  return [state, setState];
 }

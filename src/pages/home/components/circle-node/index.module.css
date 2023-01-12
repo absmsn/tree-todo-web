@@ -1,0 +1,51 @@
+.nearDeadline {
+  animation-name: nearDeadline;
+  animation-duration: 1.5s;
+  animation-iteration-count: infinite;
+  animation-timing-function: ease-in-out;
+}
+
+@keyframes nearDeadline {
+  0% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.4;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+.emphasizeCircle {
+  fill: transparent;
+  stroke-dasharray: 12 4;
+}
+
+.contentCircle {
+  transition: fill .25s linear 0s;
+}
+
+.contentText {
+  font-size: 0.75rem;
+  font-weight: bold;
+  text-anchor: middle;
+  user-select: none;
+  fill: var(--text-color);
+}
+
+.finished {
+  fill: #d9f7be;
+}
+
+.unfinished {
+  fill: #f4f4f4;
+}
+
+.dark .finished {
+  fill: #135200;
+}
+
+.dark .unfinished {
+  fill: #1f1f1f;
+}

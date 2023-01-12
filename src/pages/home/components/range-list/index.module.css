@@ -1,0 +1,27 @@
+.mainContainer {
+  position: relative;
+}
+
+.timeLine {
+  position: absolute;
+  border-left: 1px solid grey;
+}
+
+.todayMarker {
+  position: absolute;
+  left: 0;
+  transform: translate(-100%, -50%);
+  color: green;
+  font-weight: 700;
+  font-size: 12px;
+}
+
+.timeAnchor {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: white;
+  border: 2px solid grey;
+  transform: translate(-50%, -50%);
+}

@@ -1,0 +1,33 @@
+.unfinshedWarn {
+  fill: #ff7875;
+  animation-name: unfinshedWarn;
+  animation-duration: 1.5s;
+  animation-iteration-count: infinite;
+  animation-delay: 0s;
+}
+
+@keyframes unfinshedWarn {
+  0% {
+    opacity: 0;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+.line, .arrow {
+  fill: transparent;
+  stroke: var(--line-color);
+  stroke-width: 2;
+}
+
+.arrow {
+  stroke-dasharray: 10 5;
+}
+
+path .finished {
+  stroke: #95de64;
+}

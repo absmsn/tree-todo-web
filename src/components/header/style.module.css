@@ -1,9 +1,26 @@
 .container {
   display: flex;
-  justify-content: end;
+  justify-content: flex-end;
   height: 42px;
-  box-shadow: 0 0 8px #cfcfcf;
-  border-bottom: 1px solid #e0e0e0;
+  box-shadow: 0 0 8px var(--border-shadow-color);
+  border-bottom: 1px solid var(--border-shadow-color);
+  background-color: var(--bgColor);
+}
+
+.colorSchema {
+  display: flex;
+  align-items: center;
+  margin-right: 6px;
+}
+
+.colorSchema .switch {
+  margin-right: 6px;
+}
+
+.colorSchema .text {
+  color: var(--text-color);
+  font-weight: bol;
+  font-size: 0.875rem;
 }
 
 .iconArea {
@@ -20,11 +37,15 @@
   
 .iconWrapper:hover {
   border-radius: 10%;
-  background-color: #e6f7ff;
+  background-color: var(--hover-bgColor);
 }
 
 .mapSelect {
   display: flex;
   align-items: center;
   margin-right: 8px;
+}
+
+.mapSelect .select {
+  width: 200px;
 }

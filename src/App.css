@@ -1,7 +1,20 @@
 .app {
   display: flex;
+  position: relative;
   flex-direction: column;
   height: 100vh;
+}
+
+.app.dark {
+  --bgColor: #000;
+  --text-color: #fff;
+  --line-color: #fff;
+  --hover-bgColor: #2a2a2a;
+  --selected-bgColor: #2f2f2f;
+  --border-shadow-color: #2f2f2f;
+  --disabled-color: #8c8c8c;
+  --unfinished-color: grey;
+  --finished-color: green;
 }
 
 .header {

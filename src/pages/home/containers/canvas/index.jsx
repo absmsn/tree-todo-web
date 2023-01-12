@@ -1,176 +1,217 @@
-import { useEffect, useRef, useState, useMemo } from "react"
+import { useEffect, useRef, useState } from "react"
 import { observer } from "mobx-react";
 import { useThrottle } from "../../../../hooks";
-import { Dropdown, Modal, Form, Input } from "antd";
-import { CheckOutlined } from "@ant-design/icons"
-import FloatPanel from "../../components/float-panel";
-import Tree from "../../components/tree";
+import { Dropdown } from "antd";
+import { CheckOutlined } from "@ant-design/icons";
 import { ROOT_NODE_DEFAULT_SIZE } from "../../../../constants/geometry";
+import { randomBgColor } from "../../../../utils";
+import Tree from "../../components/tree";
+import FloatPanel from "../../components/float-panel";
+import TreeStore from "../../../../stores/tree";
 import style from "./style.module.css";
-import { randonBgColor } from "../../../../utils";
+
+const initialPreMousePos = { x: 0, y: 0 };
 
 const Canvas = observer(({ map }) => {
-  const container = useRef(null);
-  const [scale, setScale] = useState(1);
+  const svgRef = useRef(null);
+  const containerRef = useRef(null);
+  const preMousePos = useRef(initialPreMousePos);
   const [canvasWidth, setCanvasWidth] = useState(0);
   const [canvasHeight, setCanvasHeight] = useState(0);
-  const [showTaskList, setShowTaskList] = useState(false);
-  const [viewBoxLeft, setViewBoxLeft] = useState(0);
-  const [viewBoxTop, setViewBoxTop] = useState(0);
   const [viewBoxWidth, setViewBoxWidth] = useState(0);
   const [viewBoxHeight, setViewBoxHeight] = useState(0);
   const [isMouseDown, setIsMouseDown] = useState(false);
   const [isMouseZoom, setIsMouseZoom] = useState(false);
  
   const items = [
-    { label: '添加树', key: 'add-tree' },
-    { label: '列表视图', key: 'list-view', icon: showTaskList ? <CheckOutlined /> : false }
+    { label: '列表视图', key: 'list-view', icon: map.showTaskList ? <CheckOutlined /> : false }
   ];
 
-  const preMousePos = useMemo(() => ({ x: 0, y: 0 }), []);
+  useEffect(() => {
+    const observer = new ResizeObserver(onResize);
+    observer.observe(containerRef.current);
+    return (() => {
+      observer.disconnect();
+    });
+  }, []);
 
   const fitSvg = () => {
-    const width = container.current.offsetWidth;
-    const height = container.current.offsetHeight;
+    const width = containerRef.current.offsetWidth;
+    const height = containerRef.current.offsetHeight;
     setCanvasWidth(width);
     setCanvasHeight(height);
-    setViewBoxWidth(width * scale);
-    setViewBoxHeight(height * scale);
+    setViewBoxWidth(width * map.coordination.scale);
+    setViewBoxHeight(height * map.coordination.scale);
   };
 
   // 当dom构建完毕后设置画布的尺寸
-  useEffect(fitSvg, [container, scale]);
+  useEffect(fitSvg, [containerRef, map.coordination.scale]);
 
   const onResize = () => {
-    container && fitSvg();
+    containerRef && fitSvg();
   };
 
   useEffect(() => {
-    window.addEventListener("resize", onResize);
-    return (() => {
-      window.removeEventListener("resize", onResize);
-    })
-  }, [scale]); // FIXME: 修改每次scale就会执行effect的问题，尝试使用useReducer
+    if (canvasWidth && canvasHeight && !map.tree) {
+      const tree = new TreeStore({
+        x: canvasWidth / 2,
+        y: canvasHeight / 2,
+        r: ROOT_NODE_DEFAULT_SIZE
+      }, {
+        stroke: randomBgColor()
+      });
+      map.setTree(tree);
+    }
+  }, [canvasWidth, canvasHeight]);
 
   useEffect(() => {
      // 禁止触控板捏合缩放
-     const wheel = e => {
-      e.stopPropagation();
-      e.preventDefault();
-      return false;
+    const wheel = e => {
+      if (e.target === svgRef.current) {
+        e.stopPropagation();
+        e.preventDefault();
+        return false;
+      }
     }
     document.addEventListener("wheel", wheel ,{ passive: false });
+    const {left, top} = containerRef.current.getBoundingClientRect();
+    map.coordination.setSvgOffset(left, top);
     return (() => {
       document.removeEventListener("wheel", wheel);
     });
   }, []);
 
-  const onRightClick = ({key, domEvent}) => {
+  const onMenuClick = ({key}) => {
     switch (key) {
-      case "add-tree":
-        const {offsetLeft, offsetTop} = container.current;
-        const {clientX, clientY, offsetX, offsetY} = domEvent.nativeEvent;
-        // 将屏幕上的坐标转换为画布上的坐标
-        map.addTree({
-          x: ((clientX - offsetLeft - offsetX) / canvasWidth) * viewBoxWidth + viewBoxLeft,
-          y: ((clientY - offsetTop - offsetY) / canvasHeight) * viewBoxHeight + viewBoxTop,
-          r: ROOT_NODE_DEFAULT_SIZE
-        }, {
-          stroke: randonBgColor()
-        });
-        break;
       case "list-view":
-        setShowTaskList(!showTaskList);
+        map.setShowTaskList(!map.showTaskList);
         break;
     }
   };
 
+  const onCenterMap = () => {
+    const root = map.tree.root;
+    map.coordination.setViewBox(root.x - viewBoxWidth / 2, root.y - viewBoxHeight / 2);
+  }
+
   const onWheel = useThrottle(e => {
-    // 双指捏合
-    if (e.ctrlKey === true) {
-      const ratio = 1.5; // 缩放因子，操作一次要放缩的比例
-      const x = e.nativeEvent.clientX - container.current.offsetLeft;
-      const y = e.nativeEvent.clientY - container.current.offsetTop;
+    if (!e.nativeEvent.composedPath().includes(svgRef.current)) {
+      return;
+    }
+    // 双指捏合或者开启了鼠标缩放选项
+    if (e.ctrlKey === true || isMouseZoom) {
+      const ratio = 1.25; // 缩放因子，操作一次要放缩的比例
+      const {left, top} = containerRef.current.getBoundingClientRect();
+      const x = e.clientX - left, y = e.clientY - top;
       // 向内捏合
       if (e.deltaY > 0) {
-        setScale(scale * ratio);
-        setViewBoxLeft(viewBoxLeft - ((x / canvasWidth) * viewBoxWidth * (ratio - 1)));
-        setViewBoxTop(viewBoxTop - ((y / canvasHeight) * viewBoxHeight * (ratio - 1)));
+        map.coordination.setScale(map.coordination.scale * ratio);
+        map.coordination.setViewBox(
+          map.coordination.viewBoxLeft - ((x / canvasWidth) * viewBoxWidth * (ratio - 1)),
+          map.coordination.viewBoxTop - ((y / canvasHeight) * viewBoxHeight * (ratio - 1))
+        );
         setViewBoxWidth(viewBoxWidth * ratio);
         setViewBoxHeight(viewBoxHeight * ratio);
       } else if (e.deltaY < 0) { // 向外捏合
-        setScale(scale / ratio);
-        setViewBoxLeft(viewBoxLeft + ((x / canvasWidth) * viewBoxWidth * (1 - 1 / ratio)));
-        setViewBoxTop(viewBoxTop + ((y / canvasHeight) * viewBoxHeight * (1 - 1 / ratio)));
+        map.coordination.setScale(map.coordination.scale / ratio);
+        map.coordination.setViewBox(
+          map.coordination.viewBoxLeft + ((x / canvasWidth) * viewBoxWidth * (1 - 1 / ratio)),
+          map.coordination.viewBoxTop + ((y / canvasHeight) * viewBoxHeight * (1 - 1 / ratio))
+        );
         setViewBoxWidth(viewBoxWidth / ratio);
         setViewBoxHeight(viewBoxHeight / ratio);
       }
     } else {
-      setViewBoxLeft(viewBoxLeft + 20 * Math.sign(e.deltaX) * scale);
-      setViewBoxTop(viewBoxTop + 20 * Math.sign(e.deltaY) * scale);
+      map.coordination.setViewBox(
+        map.coordination.viewBoxLeft + 20 * Math.sign(e.deltaX) * map.coordination.scale,
+        map.coordination.viewBoxTop + 20 * Math.sign(e.deltaY) * map.coordination.scale
+      );
     }
-  }, 100, [scale, viewBoxLeft, viewBoxTop, viewBoxWidth, viewBoxHeight]);
+  }, 100, [
+    map.coordination.scale,
+    map.coordination.viewBoxLeft,
+    map.coordination.viewBoxTop,
+    viewBoxWidth,
+    viewBoxHeight
+  ]);
 
   const onMouseDown = e => {
-    if (e.button === 0) {
+    if (e.target === svgRef.current && e.button === 0) {
       // 控制拖动画布
       setIsMouseDown(true);
-      preMousePos.x = e.nativeEvent.clientX;
-      preMousePos.y = e.nativeEvent.clientY;
+      // 点击画布空白区域时，将已选中的节点设置未选中状态
+      if (map.tree.selectedNode) {
+        map.tree.unselectNode();
+      }
+      preMousePos.current.x = e.nativeEvent.clientX;
+      preMousePos.current.y = e.nativeEvent.clientY;
     }
   }
 
   const onMouseUp = e => {
-    if (e.button === 0) {
+    if (e.target === svgRef.current && e.button === 0) {
       setIsMouseDown(false);
     }
   }
 
   const onMouseMove = e => {
-    if (e.button === 0 && isMouseDown) {
+    if (e.target === svgRef.current && e.button === 0 && isMouseDown) {
       // 在火狐中，移动距离过小时offsetX和offsetY偶尔会为0，在这里不使用
       const x = e.nativeEvent.clientX;
       const y = e.nativeEvent.clientY;
-      setViewBoxLeft(viewBoxLeft - scale * (x - preMousePos.x));
-      setViewBoxTop(viewBoxTop - scale * (y - preMousePos.y));
-      preMousePos.x = x;
-      preMousePos.y = y;
+      map.coordination.setViewBox(
+        map.coordination.viewBoxLeft - map.coordination.scale * (x - preMousePos.current.x),
+        map.coordination.viewBoxTop - map.coordination.scale * (y - preMousePos.current.y)
+      );
+      preMousePos.current.x = x;
+      preMousePos.current.y = y;
     }
   };
+
+  const onMouseLeave = () => {
+    if (isMouseDown) {
+      setIsMouseDown(false);
+    }
+  }
  
   return (
     <div 
-      className={`${style.mainContainer} full-height`}
-      ref={container}
+      className={`${style.mainContainer} h-full`}
+      ref={containerRef}
     >
       <Dropdown 
-        menu={{items, onClick: onRightClick}}
-        trigger={['contextMenu']}
+        menu={{items, onClick: onMenuClick}}
+        trigger={"contextMenu"}
       >
         <svg
-          id="main-svg"
-          xmlns="http://www.w3.org/2000/svg"
+          ref={svgRef}
           baseProfile="full"
           width={canvasWidth}
           height={canvasHeight}
-          viewBox={`${viewBoxLeft} ${viewBoxTop} ${viewBoxWidth} ${viewBoxHeight}`}
           onWheel={onWheel}
           onMouseDown={onMouseDown}
           onMouseUp={onMouseUp}
           onMouseMove={onMouseMove}
+          onMouseLeave={onMouseLeave}
           style={{cursor: isMouseDown ? "grabbing" : "default"}}
+          viewBox={`${map.coordination.viewBoxLeft} ${map.coordination.viewBoxTop} ${viewBoxWidth} ${viewBoxHeight}`}
         >
           {
-            map.trees.map(tree => 
-              <Tree tree={tree} scale={scale} key={tree.id} />
-            )
+            map.tree && <Tree
+              map={map}
+              tree={map.tree}
+              svgRef={svgRef}
+              coordination={map.coordination}
+            />
           }
         </svg>
       </Dropdown>
       <div className={style.floatPanelContainer}>
         <FloatPanel
+          map={map}
           isMouseZoom={isMouseZoom}
           setIsMouseZoom={setIsMouseZoom}
+          onCenter={onCenterMap}
         />
       </div>
     </div>

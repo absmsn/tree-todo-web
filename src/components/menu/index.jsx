@@ -1,6 +1,7 @@
 import React, { useEffect, useRef } from "react";
 import styled from "styled-components";
 import * as ReactDOM from 'react-dom';
+import style from "./style.module.css";
 
 // 设置display: none会使子组件接收不到事件，尚不清楚原因
 // 使用visibility或transform或者设置宽高的方式替代
@@ -14,41 +15,26 @@ const MenuContainer = styled.div`
   margin: 0;
   padding: 4px;
   list-style-type: none;
-  background-color: #ffffff;
+  background-color: rgba(255, 255, 255, 0.875);
   background-clip: padding-box;
+  backdrop-filter: blur(2px);
   border-radius: 8px;
   outline: none;
   box-shadow: 0 6px 16px 0 rgba(0, 0, 0, 0.08),
     0 3px 6px -4px rgba(0, 0, 0, 0.12),
     0 9px 28px 8px rgba(0, 0, 0, 0.05);
+  z-index: 2147483647;
 `;
 
-const MenuItemContainer = styled.div`
-  clear: both;
-  margin: 0;
-  padding: 5px 12px;
-  color: rgba(0, 0, 0, 0.88);
-  font-weight: normal;
-  font-size: 14px;
-  line-height: 1.5714285714285714;
-  cursor: pointer;
-  transition: all 0.2s;
-  position: relative;
-  display: flex;
-  align-items: center;
-  border-radius: 4px;
-  &:hover {
-    background-color: rgba(0, 0, 0, 0.04);
-  }
-`
-
-function MenuItem({ children, onClick }) {
+function MenuItem({ children, onClick, left, right, disabled = false }) {
   return (
-    <MenuItemContainer
-      onMouseDown={onClick}
+    <div className={`${style.menuItem} ${disabled ? style.disabled : ""}`}
+      onMouseDown={e => !disabled && onClick(e)}
     >
-      {children}
-    </MenuItemContainer>
+      <div className={style.left}>{left}</div>
+        {children}
+      <div className={style.right}>{right}</div>
+    </div>
   )
 }
 
@@ -110,13 +96,9 @@ function Menu({ children, show, setShow, x, y }) {
 // 使用createPortal创建的节点，在触发事件时，会沿着dom树和React树同时
 // 向上传递事件，所以需要创建一个组件来包裹原组件，在其中阻止事件向上传递
 function MenuWrapper({ children, show, setShow, x, y }) {
-  const onMouseDown = e => {
-    e.stopPropagation();
-  }
-
   return (
-    <div onMouseDown={onMouseDown}>
-      <Menu 
+    <div onMouseDown={e => e.stopPropagation()}>
+      <Menu
         show={show}
         x={x}
         y={y}

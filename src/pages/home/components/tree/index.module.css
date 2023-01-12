@@ -1,0 +1,6 @@
+.AddPrePath {
+  fill: transparent;
+  stroke: var(--line-color);
+  stroke-width: 2;
+  stroke-dasharray: 10 5;
+}

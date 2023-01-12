@@ -1,0 +1,11 @@
+.mainContainer {
+  max-width: 360px;
+}
+
+.form .formItem:last-child {
+  margin-bottom: 10px;
+}
+
+.tag {
+  margin-right: 0;
+}
