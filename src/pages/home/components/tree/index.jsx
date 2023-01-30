@@ -1,6 +1,5 @@
-import { useContext, useEffect, useRef, useState } from "react";
+import { useContext, useEffect, useState } from "react";
 import { observer } from "mobx-react";
-import { Add_PRECURSOR_TASK } from "../../../../constants/event";
 import Edge from "../edge";
 import Node from "../circle-node";
 import ConditionLink from "../condition-link";
@@ -9,19 +8,20 @@ import {
   whichNodeIsPointIn,
   getQuaraticBezierControlPoint
 } from "../../../../utils/graph";
+import { Add_CONDITION_TASK } from "../../../../constants/event";
 import { DarkModeContext } from "../../../../App";
 import eventChannel from "../../../../utils/event";
+import nodeAPI from "../../../../apis/node";
 import style from "./index.module.css";
 
 const initialPos = {x: 0, y: 0};
 
-export default observer(function Tree({ map, tree, coordination, svgRef }) {
-  const gRef = useRef(null);
-  const {on: dark} = useContext(DarkModeContext);
+const AddPath = observer(({map, tree, svgRef}) => {
   const [isAddPreShow, setIsAddPreShow] = useState(false);
   const [startPoint, setStartPoint] = useState(initialPos);
   const [endPoint, setEndPoint] = useState(initialPos);
   const [controlPos, setControlPos] = useState(initialPos);
+
   useEffect(() => {
     const startMove = (mapID, node, e) => {
       if (mapID === map.id) {
@@ -36,16 +36,17 @@ export default observer(function Tree({ map, tree, coordination, svgRef }) {
           // 寻找两个节点的公共父节点计算量比较大，使用根节点来替代
           setControlPos(getQuaraticBezierControlPoint(start, end, tree.root));
         }
-        const mousedown = e => {
+        const mousedown = async e => {
           const point = map.coordination.clientToSvg(e.clientX, e.clientY);
           if (point) {
             const target = whichNodeIsPointIn(tree, point.x, point.y);
-            if (target && !node.precursors.includes(target)) {
+            if (target && !node.conditions.find(p => p.target === target)) {
               // 两个节点不能是父子节点关系，否则没有意义
               if (isParentOfAnother(target, node) || isParentOfAnother(node, target)) {
                 return;
               }
-              node.addPrecursor(target);
+              await nodeAPI.addCondition(node.id, target.id, "");
+              node.addCondition(target);
               setIsAddPreShow(false);
               removeListeners();
             }
@@ -67,44 +68,60 @@ export default observer(function Tree({ map, tree, coordination, svgRef }) {
         window.addEventListener("keydown", keydown);
       }
     }
-    eventChannel.on(Add_PRECURSOR_TASK, startMove);
+    eventChannel.on(Add_CONDITION_TASK, startMove);
     return (() => {
-      eventChannel.off(Add_PRECURSOR_TASK, startMove);
+      eventChannel.off(Add_CONDITION_TASK, startMove);
     });
   }, []);
 
-  const precursors = [];
+  return (
+    isAddPreShow && <path
+      d={`M ${startPoint.x} ${startPoint.y} Q ${controlPos.x} ${controlPos.y} ${endPoint.x} ${endPoint.y}`}
+      className={style.AddPrePath}
+    >
+    </path>
+  )
+});
+
+export default observer(function Tree({ map, tree, coordination, svgRef }) {
+  const {on: dark} = useContext(DarkModeContext);
+
+  const conditions = [];
   for (let i = 0; i < tree.nodes.length; i++) {
-    const node = tree.nodes[i], peers = node.precursors;
+    const node = tree.nodes[i], peers = node.conditions;
     for (let j = 0; j < peers.length; j++) {
-      precursors.push(<ConditionLink
+      const target = peers[j].target;
+      conditions.push(<ConditionLink
         tree={tree}
         source={node}
-        target={peers[j]}
-        key={`${node.id}-${peers[j].id}`}
+        target={target}
+        condition={peers[j]}
+        key={`${node.id}-${target.id}`}
       />);
     }
   }
 
   return (
-    <g ref={gRef}>
-      {precursors}
+    <g>
+      {conditions}
       {
-        isAddPreShow && <path
-          d={`M ${startPoint.x} ${startPoint.y} Q ${controlPos.x} ${controlPos.y} ${endPoint.x} ${endPoint.y}`}
-          className={style.AddPrePath}
-        >
-        </path>
+        <AddPath
+          map={map}
+          tree={tree}
+          svgRef={svgRef}
+        />
       }
       {
         tree.edges.map(edge =>
-          <Edge edge={edge} key={edge.id} />
+          <Edge
+            edge={edge} 
+            key={edge.id} 
+          />
         )
       }
       {
         tree.nodes.map(node =>
           <Node
-            map={map}
             node={node}
             tree={tree}
             dark={dark}

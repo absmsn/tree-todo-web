@@ -1,9 +1,12 @@
 import { useState, useRef } from "react";
 import { Popover } from "antd";
 import { CloseOutlined, CheckOutlined } from "@ant-design/icons";
+import nodeAPI from "../../../../apis/node";
 import style from "./style.module.css";
 
 export default function NodeComment({
+  x,
+  y,
   node,
   show,
   setIsCommentShow
@@ -11,7 +14,8 @@ export default function NodeComment({
   const textRef = useRef(null);
   const [comment, setComment] = useState(node.comment);
 
-  const saveComment = () => {
+  const saveComment = async () => {
+    await nodeAPI.edit(node.id, { comment });
     node.setComment(textRef.current.value);
     setIsCommentShow(false);
   }
@@ -34,8 +38,8 @@ export default function NodeComment({
           </div>
           <textarea
             ref={textRef}
-            className={style.textArea}
             value={comment}
+            className={style.textArea}
             onChange={e => setComment(e.target.value)}
           />
         </div>
@@ -43,12 +47,13 @@ export default function NodeComment({
       open={show}
       destroyTooltipOnHide={true}
     >
-      <circle
-        cx={node.x}
-        cy={node.y}
-        r={1}
-        fill="transparent"
-      />
+      <div
+        style={{
+          left: x,
+          top: y
+        }}
+        className={style.innerContent}>
+      </div>
     </Popover>
   )
 }

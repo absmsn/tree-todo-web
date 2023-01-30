@@ -2,12 +2,14 @@ import { useState } from "react";
 import { computed } from "mobx";
 import { PlusCircleOutlined } from "@ant-design/icons";
 import { Popover, Select, Form, Tag, Input, Button, Space } from "antd";
+import { getTagsMutations } from "../../../../utils";
+import nodeAPI from "../../../../apis/node";
 import style from "./index.module.css";
 
 const labelCol = { span: 8 };
 const wrapperCol = { span: 20 };
 
-export default function({ map, node, show, setShow }) {
+export default function({ x, y, map, node, show, setShow }) {
   const [tags, setTags] = useState([]);
   const [newTagName, setNewTagName] = useState("");
   const availableTags = computed(() => {
@@ -42,8 +44,18 @@ export default function({ map, node, show, setShow }) {
     setTags([...tags]);
   }
 
-  const onConfirm = () => {
+  const onConfirm = async () => {
     if (tags.length > 0) {
+      const newTags = node.tags.concat(tags);
+      const {add, remove} = getTagsMutations(node.tags, newTags);
+      const promises = [];
+      if (add.length > 0) {
+        promises.push(nodeAPI.addTags(node.id, add.map(item => item.id)));
+      }
+      if (remove.length > 0) {
+        promises.push(nodeAPI.removeTags(node.id, remove.map(item => item.id)));
+      }
+      await Promise.all(promises);
       node.setTags(node.tags.concat(tags));
     }
     setShow(false);
@@ -133,12 +145,13 @@ export default function({ map, node, show, setShow }) {
       destroyTooltipOnHide={true}
       overlayClassName={style.mainContainer}
     >
-      <circle
-        cx={node.x}
-        cy={node.y}
-        r={1}
-        fill="transparent"
-      />
+      <div
+        style={{
+          left: x,
+          top: y
+        }}
+        className={style.inner}>
+      </div>
     </Popover>
   )
 }

@@ -11,3 +11,13 @@ export function crossProduct(x1, y1, x2, y2) {
 export function pointDistance(x1, y1, x2, y2) {
   return Math.sqrt(Math.pow(x1 - x2 , 2) + Math.pow(y1 - y2 , 2));
 }
+
+export function atan(offsetY, offsetX) {
+  let theta = Math.atan(offsetY / offsetX);
+  if (theta < 0 && offsetX <= 0) {
+    theta += Math.PI; 
+  } else if (theta > 0 && offsetX <= 0) {
+    theta -= Math.PI;
+  }
+  return theta;
+}

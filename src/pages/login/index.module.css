@@ -1,0 +1,26 @@
+.mainContainer {
+  height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--bgColor);
+}
+
+.title {
+  color: var(--text-color);
+  font-weight: bold;
+  font-size: 1.25rem;
+  text-align: center;
+  margin: 16px 0;
+}
+
+.formArea {
+  padding: 36px 42px;
+  border-radius: 8px;
+  border: 1px solid var(--border-shadow-color);
+  box-shadow: 0 0 8px var(--border-shadow-color);
+}
+
+.existText {
+  margin-right: 6px;
+}

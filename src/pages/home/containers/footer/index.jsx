@@ -1,14 +1,16 @@
-import { useContext, useMemo } from "react";
+import { useState, useContext, useMemo } from "react";
 import { observer } from "mobx-react";
 import { computed } from "mobx";
-import { Dropdown } from "antd";
+import { Dropdown, Input } from "antd";
 import { 
   CloudOutlined,
   CloudSyncOutlined
 } from "@ant-design/icons";
 import { toHourMinute } from "../../../../utils/time";
 import { TodayContext } from "../../../../App";
+import mapAPI from "../../../../apis/map";
 import style from "./index.module.css";
+import { useEffect } from "react";
 
 let viewMenu = [
   { key: "tree-view", label: "树视图" },
@@ -68,11 +70,56 @@ const TasksInfo = observer(({tree}) => {
     </div>
     <div className={style.section}>
       <div className={style.title}>今日过期任务:</div>
-      <Dropdown menu={{items: deadlinedMenuItems}} trigger={"click"} arrow>
-        <div>{deadlinedTasks.length}项</div>
-      </Dropdown>
+      {
+        deadlinedMenuItems.length > 0
+          ? <Dropdown menu={{items: deadlinedMenuItems}} trigger={"click"} arrow>
+            <div className="cursor-pointer">{deadlinedTasks.length}项</div>
+          </Dropdown>
+          : <div>{deadlinedTasks.length}项</div>
+      }
     </div>
   </>
+});
+
+const MapName = observer(({map}) => {
+  const [name, setName] = useState(map.name);
+  const [editShow, setEditShow] = useState(false);
+  const onFinished = async () => {
+    if (name && name !== map.name) {
+      await mapAPI.edit(map.id, {
+        name: name
+      });
+      map.setName(name);
+    }
+    setEditShow(false);
+  }
+
+  useEffect(() => {
+    setName(map.name);
+  }, [map]);
+
+  return (
+    <>
+      <div className={style.title}>图:</div>
+      {
+        editShow
+          ? <Input
+            size="small"
+            value={name}
+            // onBlur={onFinished}
+            onChange={e => setName(e.target.value)}
+            onPressEnter={onFinished}
+            className={style.editNameInput}
+          />
+          : <div
+            onDoubleClick={() => setEditShow(true)}
+            className={style.mapName}
+          >
+            {map.name}
+          </div>
+      }
+    </>
+  )
 });
 
 export default observer(function Footer({ app, map }) {
@@ -97,8 +144,7 @@ export default observer(function Footer({ app, map }) {
       </div>
       <div className={style.mapInfo}>
         <div className={style.section}>
-          <div className={style.title}>图:</div>
-          <div>{map.name}</div>
+          <MapName map={map}/ >
         </div>
         <div className={style.section}>
           <div className={style.title}>选中节点:</div>
@@ -115,4 +161,4 @@ export default observer(function Footer({ app, map }) {
       </div>
     </div>
   )
-})
+});

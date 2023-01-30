@@ -10,7 +10,7 @@
 .colorSchema {
   display: flex;
   align-items: center;
-  margin-right: 6px;
+  margin: 0 6px;
 }
 
 .colorSchema .switch {
@@ -29,7 +29,7 @@
   margin-right: 6px;
 }
 
-.iconWrapper {
+.iconWrapper, .avatarArea {
   display: flex;
   margin: 0 2px;
   padding: 8px;
@@ -40,6 +40,24 @@
   background-color: var(--hover-bgColor);
 }
 
+.avatarArea {
+  cursor: default;
+}
+
+.avatarArea .avatar {
+  display: flex;
+  width: 24px;
+  height: 24px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  font-size: 0.875rem;
+  font-weight: bold;
+  user-select: none;
+  color: #fff;
+  background: linear-gradient(45deg, #7d55ff, #1cfff2);
+}
+
 .mapSelect {
   display: flex;
   align-items: center;
@@ -48,4 +66,8 @@
 
 .mapSelect .select {
   width: 200px;
+}
+
+.accountMenuIcon {
+  margin-left: 12px;
 }

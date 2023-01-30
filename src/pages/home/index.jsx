@@ -3,18 +3,13 @@ import { Resizable } from "re-resizable";
 import Canvas from "./containers/canvas";
 import Footer from "./containers/footer";
 import TaskList from "./containers/task-list";
-import { DEFAULT_MAP_NAME } from "../../constants";
+import Notes from "./containers/notes";
 import style from "./index.module.css";
 
 const resizeEnable = { left: true };
 const resizeDefaultSize = { height: "100%" };
 
 const Home = observer(({ app, maps }) => {
-  if (maps.maps.length === 0) {
-    const mapStore = maps.add(DEFAULT_MAP_NAME);
-    maps.setSelectedMap(mapStore);
-  }
-
   if (!maps.selectedMap) {
     return null;
   }
@@ -41,6 +36,9 @@ const Home = observer(({ app, maps }) => {
                   <TaskList map={map} tree={map.tree}/>
                 </div>
               </Resizable>
+            }
+            {
+              map.showNotes && <Notes />
             }
             </div>
           )

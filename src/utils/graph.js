@@ -1,17 +1,29 @@
 import {
   DEFAULT_EDGE_LENGTH,
-  ROOT_NODE_DEFAULT_SIZE
+  DEFAULT_STROKE_WIDTH,
+  ROOT_NODE_DEFAULT_SIZE,
+  PLAIN_NODE_DEFAULT_SIZE
 } from "../constants/geometry";
-import { throttle } from "lodash";
-import { crossProduct, dotProduct, pointDistance } from "./math";
+import { isNull, isNumber, throttle } from "lodash";
 import { 
-  forceSimulation, 
-  forceLink, 
-  forceManyBody, 
+  atan,
+  crossProduct,
+  pointDistance
+} from "./math";
+import { 
+  forceSimulation,
+  forceLink,
+  forceManyBody,
   forceCollide,
   forceCenter
  } from "d3-force";
-import { polygonHull, polygonContains } from "d3-polygon";
+import {
+  polygonHull,
+  polygonContains
+} from "d3-polygon";
+import TreeStore from "../stores/tree";
+import ConditionStore from "../stores/condition";
+import { randomBgColor } from ".";
 
 // 在创建一个新节点时，为这个节点指定一个合适的节点坐标
 export function getChildNodePosition(parent, r, edgeLength = DEFAULT_EDGE_LENGTH) {
@@ -39,14 +51,9 @@ export function getChildNodePosition(parent, r, edgeLength = DEFAULT_EDGE_LENGTH
 // 以起始点和终止点作为等腰三角形底边的两个点，求另一个点
 export function getQuaraticBezierControlPoint(start, end, parent) {
   const offsetX = end.x - start.x, offsetY = end.y - start.y;
-  let theta = Math.atan(offsetY / offsetX);
+  let theta = atan(offsetY, offsetX);
   const centerX = (start.x + end.x) / 2, centerY = (start.y + end.y) / 2;
-  const length = pointDistance(centerX, centerY, end.x, end.y) * .5;
-  if (theta < 0 && end.x - start.x <= 0) {
-    theta += Math.PI; 
-  } else if (theta > 0 && end.x - start.x <= 0) {
-    theta -= Math.PI;
-  }
+  const length = pointDistance(centerX, centerY, end.x, end.y) * .75;
   const cross = crossProduct(offsetX, offsetY, parent.x - start.x, parent.y - start.y);
   // 控制点和父节点中心分别在start和end连线的两侧
   const rotatedTheta = theta - Math.sign(cross) * (Math.PI / 2);
@@ -176,10 +183,30 @@ export function reArrangeTree(tree) {
     depth: node.depth,
     r: node.r
   }));
-  const links = tree.edges.map(edge => ({
-    source: edge.source.id,
-    target: edge.target.id
-  }));
+  const nodeMinDistance = 10; // 节点之间的安全距离
+  const rootPlainDistance = ROOT_NODE_DEFAULT_SIZE + DEFAULT_EDGE_LENGTH + PLAIN_NODE_DEFAULT_SIZE; // 根节点和其子节点的最小距离
+  const plainsDistance = PLAIN_NODE_DEFAULT_SIZE * 2 + DEFAULT_EDGE_LENGTH; // 普通子节点与其子节点的最小距离
+  const siblingMinDistanceHalf = PLAIN_NODE_DEFAULT_SIZE + nodeMinDistance / 2; // 两个兄弟节点之间的最小距离的一半
+  const stack = [tree.root], links = [];
+  while (stack.length > 0) {
+    const node = stack.pop();
+    const children = node.children;
+    if (children.length !== 0) {
+      // 考虑到子节点数量过多时，固定的父子节点距离不能获取合适的布局
+      const linkLength = Math.max(
+        node.parent ? plainsDistance : rootPlainDistance,
+        children.length !== 1 ? siblingMinDistanceHalf / Math.sin((Math.PI / children.length)) : 0
+      );
+      for (let i = 0; i < children.length; i++) {
+        links.push({
+          source: node.id,
+          target: children[i].id,
+          linkLength
+        });
+        stack.push(children[i]);
+      }
+    }
+  }
   const rootX = tree.root.x, rootY = tree.root.y;
   return new Promise((resolve) => {
     forceSimulation(nodes)
@@ -198,12 +225,112 @@ export function reArrangeTree(tree) {
       }, 60))
       .force("link", forceLink(links)
         .id(d => d.id)
-        .distance(2 * ROOT_NODE_DEFAULT_SIZE + DEFAULT_EDGE_LENGTH))
+        .distance(l => l.linkLength))
       .force("charge", forceManyBody()
         .strength(node => {
-          return -(300 * (.5 ** (node.depth + 1)));
+          return -(300 * (.35 ** (node.depth + 1)));
         }))
-      .force("collide", forceCollide(d => d.r * 1.5))
-      .force("center", forceCenter(rootX, rootY));
+      .force("collide", forceCollide(d => d.r + nodeMinDistance));
   });
+}
+
+export function buildTreeFromNodeItems(nodes, tags, x, y) {
+  const tree = new TreeStore({
+    x: x,
+    y: y,
+    r: ROOT_NODE_DEFAULT_SIZE
+  }, {
+    stroke: randomBgColor(),
+    strokeWidth: DEFAULT_STROKE_WIDTH
+  });
+  const initialGeometry = {
+    x: x,
+    y: y,
+    r: PLAIN_NODE_DEFAULT_SIZE
+  }
+  const idNode = new Map(), addedIdNodes = new Map(), idTag = new Map();
+  const root = nodes.find(node => isNull(node.parentId));
+  addedIdNodes.set(root.id, tree.root);
+  tree.root.setId(root.id);
+  const add = (node) => {
+    if (addedIdNodes.has(node.id)) {
+      return addedIdNodes.get(node.id);
+    }
+    if (addedIdNodes.has(node.parentId)) {
+      const parent = addedIdNodes.get(node.parentId);
+      const newNode = tree.addNode(parent, initialGeometry);
+      addedIdNodes.set(node.id, newNode);
+      return newNode;
+    } else {
+      const parentNode = idNode.get(node.parentId);
+      const parent = add(parentNode);
+      const newNode = tree.addNode(parent, initialGeometry);
+      addedIdNodes.set(node.id, newNode);
+      return newNode;
+    }
+  }
+  for (let node of nodes) {
+    idNode.set(node.id, node);
+  }
+  for (let tag of tags) {
+    idTag.set(tag.id, tag);
+  }
+  for (let node of nodes) {
+    if (isNumber(node.parentId)) {
+      add(node);  
+    }
+  }
+  for (let node of nodes) {
+    const nodeStore = addedIdNodes.get(node.id);
+    nodeStore.fromPartial(node);
+    if (node.startTime) {
+      nodeStore.setStartTime(new Date(node.startTime));
+    }
+    if (node.endTime) {
+      nodeStore.setEndTime(new Date(node.endTime));
+    }
+    if (node.tags.length > 0) {
+      nodeStore.setTags(node.tags.map(tag => idTag.get(tag.tagId)));
+    }
+    if (node.outs.length > 0) {
+      const conditions = node.outs.map(out => {
+        const target = addedIdNodes.get(out.targetId);
+        const condition = new ConditionStore(target, out.text);
+        return condition;
+      });
+      nodeStore.setConditions(conditions);
+    }
+  }
+  const queue = [tree.root], betweenTheta = Math.PI / 4;
+  while (queue.length > 0) {
+    const node = queue.shift();
+    const length = node.children.length;
+    // 如果是根节点，则使它的子节点均匀分布
+    if (!node.parent) {
+      const angle = (Math.PI * 2) / length;
+      const distance = DEFAULT_EDGE_LENGTH + ROOT_NODE_DEFAULT_SIZE + PLAIN_NODE_DEFAULT_SIZE;
+      for (let i = 0; i < length; i++) {
+        node.children[i].setPosition(
+          node.x + distance * Math.cos(angle * i),
+          node.y + distance * Math.sin(angle * i)
+        );
+      }
+    } else if (length > 0) {
+      // 如果不是根节点，则使它的子节点们沿着延长线两侧分布
+      const distance = pointDistance(node.x, node.y, node.parent.x, node.parent.y);
+      const parentAngle = atan(node.y - node.parent.y, node.x - node.parent.x);
+      const initialAngle = parentAngle - (betweenTheta * (length - 1)) / 2;
+      for (let i = 0; i < length; i++) {
+        const theta = initialAngle + i * betweenTheta;
+        node.children[i].setPosition(
+          node.x + distance * Math.cos(theta),
+          node.y + distance * Math.sin(theta)
+        );
+      }
+    }
+    for (let i = 0; i < length; i++) {
+      queue.push(node.children[i]);
+    }
+  }
+  return tree;
 }

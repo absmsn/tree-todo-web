@@ -20,6 +20,10 @@ export default class Tag {
     this.name = name;
   }
 
+  setId(id) {
+    this.id = id;
+  }
+
   setBackgroundColor(color) {
     this.color = color;
   }

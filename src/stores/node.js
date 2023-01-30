@@ -1,7 +1,8 @@
 import { makeAutoObservable } from "mobx";
-import { isNumber } from "lodash";
+import { isNumber, isObject } from "lodash";
 import { geneID } from "../utils";
 import { DEFAULT_STROKE_WIDTH } from "../constants/geometry";
+import ConditionStore from "./condition";
 
 // 将所有上层节点finished标记为false
 function markParentUnfinished(node) {
@@ -19,9 +20,11 @@ export default class NodeStore {
 
   children = [];
 
-  precursors = [];
+  conditions = [];
 
   tags = [];
+
+  notes = [];
 
   title = "";
 
@@ -31,11 +34,19 @@ export default class NodeStore {
 
   selected = false;
 
+  repeatDuration = null;
+
   startTime = null;
 
   endTime = null;
 
   createTime = new Date();
+
+  finishTime = null;
+
+  backgroundImageURL = "";
+
+  priority = 0;
 
   x = 0;
 
@@ -66,6 +77,18 @@ export default class NodeStore {
     makeAutoObservable(this);
   }
 
+  setId(id) {
+    this.id = id;
+  }
+
+  fromPartial(partial) {
+    if (isObject(partial)) {
+      for (let key in partial) {
+        this[key] = partial[key];
+      }
+    }
+  }
+
   setParent(parent) {
     this.parent = parent;
   }
@@ -85,6 +108,7 @@ export default class NodeStore {
 
   setFinished(finished) {
     this.finished = finished;
+    this.finishTime = new Date();
   }
 
   setStartTime(time) {
@@ -97,6 +121,10 @@ export default class NodeStore {
 
   setSelected(selected) {
     this.selected = selected;
+  }
+
+  setBackgroundImageURL(url) {
+    this.backgroundImageURL = url;
   }
 
   addChild(child) {
@@ -112,21 +140,32 @@ export default class NodeStore {
     this.tags = tags;
   }
 
-  removeTag(name) {
-    const i = this.tags.findIndex(t => t.name === name);
-    if (i !== -1) {
-      this.tags.splice(i, 1);
+  removeTag(id) {
+    if (this.tags.length > 0) {
+      const i = this.tags.findIndex(t => t.id === id);
+      if (i !== -1) {
+        this.tags.splice(i, 1);
+      }
     }
   }
 
-  addPrecursor(precursor) {
-    this.precursors.push(precursor);
+  addCondition(condition) {
+    const conditionStore = new ConditionStore(condition);
+    this.conditions.push(conditionStore);
   }
 
-  removePrecursor(node) {
-    const i = this.precursors.findIndex(n => n === node);
+  removeCondition(node) {
+    const i = this.conditions.findIndex(n => n.target === node);
     if (i !== -1) {
-      this.precursors.splice(i, 1);
+      this.conditions.splice(i, 1);
     }
+  }
+
+  setConditions(conditions) {
+    this.conditions = conditions;
+  }
+
+  setPriority(priority) {
+    this.priority = priority;
   }
 }

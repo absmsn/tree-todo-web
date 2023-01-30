@@ -31,6 +31,14 @@
   margin-right: 4px;
 }
 
+.mapName {
+  cursor: pointer;
+}
+
+.editNameInput {
+  width: 6rem;
+}
+
 .selectable {
   cursor: pointer;
   border-radius: 4px;
@@ -56,5 +64,5 @@
 }
 
 .deadlineMenuItem .delayText {
-  max-width: 3em;
+  min-width: 3em;
 }

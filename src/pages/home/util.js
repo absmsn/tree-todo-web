@@ -18,8 +18,8 @@ export const getFirstTask = (tasks) => {
 }
 
 export function getFirstMsOfDay(date) {
-  const ms = date.getTime();
-  return date.getTime() - (ms % MILLSECONDS_PER_DAY);
+  const ms = date.getTime(), offset = date.getTimezoneOffset() * 60000;
+  return ms - ((ms - offset) % MILLSECONDS_PER_DAY);
 }
 
 export function getLastMsOfDay(date) {

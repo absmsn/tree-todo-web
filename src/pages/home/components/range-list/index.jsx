@@ -105,7 +105,9 @@ export default observer(({ map, tasks, descend, selectedTags, filterFinished }) 
           }
           i++;
         }
-        if (newValidTasks.length > 0) {
+        // 前面的元素是当前组中的第一个
+        const last = newValidTasks[newValidTasks.length - 1];
+        if (newValidTasks.length > 0 && !isArray(last) && last === layers[0][0]) {
           newValidTasks[newValidTasks.length - 1] = layers; // 替换上一个元素
         } else {
           newValidTasks.push(layers);

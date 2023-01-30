@@ -10,6 +10,10 @@ export default class EdgeStore {
 
   edgeStyle = null;
 
+  setId(id) {
+    this.id = id;
+  }
+
   constructor(source, target, edgeStyle) {
     this.source = source;
     this.target = target;

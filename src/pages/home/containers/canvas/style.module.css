@@ -4,8 +4,15 @@
   background-color: var(--bgColor);
 }
 
-.floatPanelContainer {
+.floatLine {
   position: absolute;
+  display: flex;
+  align-items: center;
   right: 8px;
   top: 8px;
+  z-index: 1;
+}
+
+.floatLine > * {
+  margin-left: 12px;
 }

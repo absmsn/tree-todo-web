@@ -1,64 +1,28 @@
 import { useState, useEffect, useRef, useContext } from "react";
 import { observer } from "mobx-react";
-import NodeMenu from "../node-menu";
+import { notification, Space, Tooltip } from "antd";
+import { Howl } from "howler";
 import NodeTags from "../node-tags";
-import NodeComment from "../node-comment";
-import ConfigPopover from "../config-popover";
-import AddTagPopover from "../add-tag-popover";
+import RangeProgress from "../range-progress";
 import DeadlineRemind from "../deadline-remind";
 import { TodayContext } from "../../../../App";
 import { MILLSECONDS_PER_DAY } from "../../../../constants/number";
 import { DEFAULT_THIN_STROKE_WIDTH } from "../../../../constants/geometry";
 import { reArrangeTree } from "../../../../utils/graph";
+import { toHourMinute } from "../../../../utils/time";
+import nodeAPI from "../../../../apis/node";
 import style from "./index.module.css";
+import Priority from "../priority";
 
 const initialPos = {x: 0, y: 0};
 
-export default observer(function CircleNode({ map, node, tree, coordination, dark }) {
+const stopPropagation = e => e.stopPropagation();
+
+const TitleInput = observer(({node, isTitleInputShow, setIsTitleInputShow}) => {
   const inputRef = useRef(null);
-  const nodeAreaRef = useRef(null);
-  const prevMousePos = useRef(initialPos);
-  const today = useContext(TodayContext);
-  const [menuPos, setMenuPos] = useState(initialPos);
-  const [nearDeadline, setNearDeadline] = useState(false);
-  const [isMenuShow, setIsMenuShow] = useState(false);
-  const [isMouseDown, setIsMouseDown] = useState(false);
-  const [isMouseMoving, setIsMouseMoving] = useState(false);
-  const [isAddTagShow, setIsAddTagShow] = useState(false);
-  const [isCommentShow, setIsCommentShow] = useState(false);
-  const [isTitleInputShow, setIsTitleInputShow] = useState(false);
-  const [configPopoverShow, setConfigPopoverShow] = useState(true);
+  const [title, setTitle] = useState(node.title);
   const [foreignSize, setForeignSize] = useState({width: node.r * 2, height: 0});
-
-  let inputLength = node.r * 2, nodeCommentView = null;
-  if (isCommentShow) {
-    // 节点的中心位置在client中的坐标
-    const nodeClientPos = coordination.svgToClient(node.x, node.y);
-    nodeCommentView = <NodeComment
-      node={node}
-      show={isCommentShow}
-      x={nodeClientPos.x}
-      y={nodeClientPos.y}
-      setIsCommentShow={setIsCommentShow}
-    />
-  }
-
-  // 高亮显示当天要完成的任务
-  useEffect(() => {
-    // 设置为完成状态,此时要取消高亮效果
-    if (node.finished) {
-      return setNearDeadline(false);
-    }
-    // 设置了终止日期,终止日期在今天,并且任务还未过期
-    const deadlineMs = node.endTime?.getTime(), now = Date.now();
-    if (node.endTime && (deadlineMs - today.getTime()) < MILLSECONDS_PER_DAY && (deadlineMs >= now)) {
-      setNearDeadline(true);
-      const timer = setTimeout(() => setNearDeadline(false), deadlineMs - now); // 到期的时候取消闪烁
-      return (() => {
-        clearTimeout(timer);
-      });
-    }
-  }, [node.endTime, node.finished, today]);
+  const inputLength = node.r * 2;
 
   useEffect(() => {
     if (isTitleInputShow) {
@@ -70,8 +34,11 @@ export default observer(function CircleNode({ map, node, tree, coordination, dar
       const onKeyUp = e => {
         // 输入回车，关闭输入框
         if (e.key === "Enter") {
-          node.setTitle(inputRef.current.value);
+          node.setTitle(inputRef.current.value); // 没有将title加入依赖数组，直接使用输入框内的值
           setIsTitleInputShow(false);
+          nodeAPI.edit(node.id, {
+            title: node.title
+          });
         }
       }
       document.addEventListener("keyup", onKeyUp);
@@ -85,7 +52,11 @@ export default observer(function CircleNode({ map, node, tree, coordination, dar
   useEffect(() => {
     const onBlur = e => {
       if (isTitleInputShow && e.target !== inputRef.current) {
+        node.setTitle(inputRef.current.value);
         setIsTitleInputShow(false);
+        nodeAPI.edit(node.id, {
+          title: node.title
+        });
       }
     };
     if (isTitleInputShow) {
@@ -97,6 +68,68 @@ export default observer(function CircleNode({ map, node, tree, coordination, dar
       }
     });
   }, [isTitleInputShow]);
+
+  return (
+    <foreignObject
+      x={node.x}
+      y={node.y}
+      width={foreignSize.width}
+      height={foreignSize.height}
+      transform={`translate(${-foreignSize.width / 2} ${-foreignSize.height / 2})`}
+    >
+      <input 
+        ref={inputRef}
+        value={title}
+        style={{ width: inputLength }}
+        onChange={e => setTitle(e.target.value)}
+      />
+    </foreignObject>
+  )
+});
+
+export default observer(({ node, tree, coordination, dark }) => {
+  const nodeAreaRef = useRef(null);
+  const prevMousePos = useRef(initialPos);
+  const today = useContext(TodayContext);
+  const [nearDeadline, setNearDeadline] = useState(false);
+  const [isMouseDown, setIsMouseDown] = useState(false);
+  const [isMouseMoving, setIsMouseMoving] = useState(false);
+  const [isTitleInputShow, setIsTitleInputShow] = useState(false);
+  const [notificationApi, notificationContext] = notification.useNotification();
+
+  // 高亮显示当天要完成的任务
+  useEffect(() => {
+    // 设置为完成状态,此时要取消高亮效果
+    if (node.finished) {
+      return setNearDeadline(false);
+    }
+    // 设置了终止日期,终止日期在今天,并且任务还未过期
+    const deadlineMs = node.endTime?.getTime(), now = Date.now();
+    if (node.endTime && ((deadlineMs - today.getTime()) < MILLSECONDS_PER_DAY) && (deadlineMs >= now)) {
+      setNearDeadline(true);
+      const timer = setTimeout(() => {
+        setNearDeadline(false);
+        notificationApi.info({
+          message: "任务过期",
+          description: <>
+            <div>任务{node.title}于{toHourMinute(node.endTime)}到期</div>
+            <Space>
+              <a>定位</a>
+              <a>标记为已完成</a>
+            </Space>
+          </>,
+          duration: 30
+        });
+        const sound = new Howl({
+          src: ["/audios/expired.mp3"]
+        });
+        sound.play();
+      }, deadlineMs - now); // 到期的时候取消闪烁
+      return (() => {
+        clearTimeout(timer);
+      });
+    }
+  }, [node.endTime, node.finished, today]);
 
   const onMouseDown = e => {
     if (e.button === 0) {
@@ -163,39 +196,54 @@ export default observer(function CircleNode({ map, node, tree, coordination, dar
       setIsMouseDown(false);
     }
   }
-
-  const onContextMenu = e => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (!isMenuShow) {
-      setIsMenuShow(true);
-      setMenuPos({
-        x: e.clientX,
-        y: e.clientY
-      });
-    }
-  }
  
   return (
-    <g className={`${dark ? style.dark : ""}`}>
+    <g
+      className={`${dark ? style.dark : ""}`}
+      onContextMenu={stopPropagation}
+    >
+      {notificationContext}
       <g
         ref={nodeAreaRef}
         onMouseDown={onMouseDown}
         onMouseMove={onMouseMove}
         onMouseUp={onMouseUp}
         onMouseLeave={onMouseLeave}
-        onContextMenu={onContextMenu}
         className={`${nearDeadline ? style.nearDeadline : ""}`}
         style={{cursor: isMouseDown ? "grabbing" : ""}}
       >
-        <circle
-          cx={node.x}
-          cy={node.y}
-          r={node.r}
-          stroke={node.stroke}
-          strokeWidth={node.strokeWidth}
-          className={`${style.contentCircle} ${node.finished ? style.finished : style.unfinished}`}
-        />
+        <Tooltip
+          title={node.comment} 
+          placement="right"
+          className="tooltip-style"
+        >
+          <circle
+            cx={node.x}
+            cy={node.y}
+            r={node.r}
+            stroke={node.stroke}
+            strokeWidth={node.strokeWidth}
+            className={`${style.contentCircle} ${node.finished ? style.finished : style.unfinished}`}
+          />
+        </Tooltip>
+        {
+          node.backgroundImageURL && <>
+            <defs>
+              <clipPath id={`bg-${node.id}`}>
+                <circle cx={node.x} cy={node.y} r={node.r} />
+              </clipPath>
+            </defs>
+            <image
+              href={node.backgroundImageURL}
+              x={node.x - node.r}
+              y={node.y - node.r}
+              height={node.r * 2}
+              width={node.r * 2}
+              clipPath={`url(#bg-${node.id})`}
+              opacity={0.75}
+            />
+          </>
+        }
         {
           node.selected && <circle
             cx={node.x}
@@ -215,37 +263,19 @@ export default observer(function CircleNode({ map, node, tree, coordination, dar
         >
           {node.title}
         </text>
+        {
+          node.priority && <Priority node={node} />
+        }
       </g>
       {
-        configPopoverShow && <ConfigPopover
-          node={node}
-          show={configPopoverShow}
-          setShow={setConfigPopoverShow}
-        />
+        node.endTime && <RangeProgress node={node} />
       }
       {
-        isAddTagShow && <AddTagPopover
-          map={map}
+        isTitleInputShow && <TitleInput 
           node={node}
-          show={isAddTagShow}
-          setShow={setIsAddTagShow}
+          isTitleInputShow={isTitleInputShow}
+          setIsTitleInputShow={setIsTitleInputShow}
         />
-      }
-      {
-        isTitleInputShow && <foreignObject
-          x={node.x}
-          y={node.y}
-          width={foreignSize.width}
-          height={foreignSize.height}
-          transform={`translate(${-foreignSize.width / 2} ${-foreignSize.height / 2})`}
-        >
-          <input 
-            ref={inputRef}
-            value={node.title}
-            style={{ width: inputLength }}
-            onChange={e => node.setTitle(e.target.value)}
-          />
-        </foreignObject>
       }
       {
         node.tags.length > 0 && <NodeTags
@@ -257,23 +287,6 @@ export default observer(function CircleNode({ map, node, tree, coordination, dar
         nearDeadline && <DeadlineRemind
           node={node}
           setNearDeadline={setNearDeadline}
-        />
-      }
-      {
-        nodeCommentView
-      }
-      {
-        isMenuShow && <NodeMenu
-          x={menuPos.x}
-          y={menuPos.y}
-          map={map}
-          node={node}
-          tree={tree}
-          isMenuShow={isMenuShow}
-          setIsMenuShow={setIsMenuShow}
-          setIsAddTagShow={setIsAddTagShow}
-          setIsCommentShow={setIsCommentShow}
-          setConfigPopoverShow={setConfigPopoverShow}
         />
       }
     </g>

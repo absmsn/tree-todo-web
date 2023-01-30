@@ -3,6 +3,8 @@ import NodeStore from "./node";
 import EdgeStore from "./edge";
 import { geneID } from "../utils";
 import { DEFAULT_STROKE_WIDTH } from "../constants/geometry";
+import { isObject } from "lodash";
+import nodeAPI from "../apis/node";
 
 const defaultNodeName = "title";
 
@@ -43,23 +45,28 @@ export default class TreeStore {
     makeAutoObservable(this);
   }
 
-  addNode(parentID, geometry) {
-    const parent = this.nodes.find(n => n.id === parentID);
-    if (parent) {
-      const node = new NodeStore(
-        defaultNodeName,
-        geometry,
-        this.nodeStyle
-      );
-      const edge = new EdgeStore(parent, node, {...this.nodeStyle});
-      this.nodes.push(node);
-      this.edges.push(edge);
-      parent.addChild(node);
-      return node;
+  fromPartial(partial) {
+    if (isObject(partial)) {
+      for (let key in partial) {
+        this[key] = partial[key];
+      }
     }
   }
 
-  removeNode(id) {
+  addNode(parent, geometry) {
+    const node = new NodeStore(
+      defaultNodeName,
+      geometry,
+      this.nodeStyle
+    );
+    const edge = new EdgeStore(parent, node, {...this.nodeStyle});
+    this.nodes.push(node);
+    this.edges.push(edge);
+    parent.addChild(node);
+    return node;
+  }
+
+  async removeNode(id) {
     let node = this.nodes.find(n => n.id === id);
     if (!node) {
       return;
@@ -73,6 +80,11 @@ export default class TreeStore {
         stack.push(ele.children[i]);
       }
     }
+    const ids = [];
+    for (let node of toRemove.values()) {
+      ids.push(node.id);
+    }
+    await nodeAPI.removeBatch(ids);
     if (node.parent) {
       let i = node.parent.children.findIndex(n => n === node);
       node.parent.children.splice(i, 1);
@@ -89,9 +101,8 @@ export default class TreeStore {
     });
     for (let i = 0; i < this.nodes.length; i++) {
       const n = this.nodes[i];
-      let index = n.precursors.findIndex(p => p === node);
-      if (index !== -1) {
-        n.precursors.splice(index, 1);
+      if (n.conditions.length > 0 && !toRemove.has(n)) {
+        n.setConditions(n.conditions.filter(c => !toRemove.has(c.target)));
       }
     }
   }
@@ -102,6 +113,7 @@ export default class TreeStore {
       this.selectedNode = null;
     }
   }
+  
   setSelectedNode(node) {
     this.unselectNode();
     this.selectedNode = node;

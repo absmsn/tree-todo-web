@@ -1,0 +1,16 @@
+.repeatLine {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.repeatLine:last-child {
+  margin-bottom: 0;
+}
+
+.repeatQuestionMark {
+  font-size: 10px !important;
+  color: var(--dimmed-color);
+  margin-right: 4px;
+}

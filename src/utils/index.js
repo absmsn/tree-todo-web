@@ -1,3 +1,5 @@
+import tagAPI from "../apis/tag";
+
 export function geneID() {
   return String(Date.now()) + String(Math.floor(Math.random() * 1e4));
 }
@@ -15,4 +17,28 @@ export function randomColorHSL(minH = 0, maxH = 360, minS = 0, maxS = 100,minL =
 
 export function randomBgColor() {
   return randomColorHSL(0, 360, 0, 100, 0, 60);
+}
+
+export function getTagsMutations(oldTags, newTags) {
+  const oldMap = new Map(), newMap = new Map(), addItems = [], removeItems = [];
+  for (let tag of oldTags) {
+    oldMap.set(tag.id, tag);
+  }
+  for (let tag of newTags) {
+    newMap.set(tag.id, tag);
+  }
+  newMap.forEach((tag, id) => {
+    if (!oldMap.has(id)) {
+      addItems.push(tag);
+    }
+  });
+  oldMap.forEach((tag, id) => {
+    if (!newMap.has(id)) {
+      removeItems.push(tag);
+    }
+  });
+  return {
+    add: addItems,
+    remove: removeItems
+  };
 }

@@ -4,6 +4,7 @@ import { Popover, Empty, Tag, Input } from "antd";
 import {
   PlusCircleOutlined
 } from "@ant-design/icons";
+import tagAPI from "../../../../apis/tag";
 import style from "./index.module.css";
 
 export default observer(function FloatPanel({map, show, children}) {
@@ -17,6 +18,14 @@ export default observer(function FloatPanel({map, show, children}) {
       if (!map.tags.some(t => t.name === newTagName)) {
         map.addTag(newTagName);
       }
+    }
+  }
+
+  const onRemoveTag = async (tag) => {
+    await tagAPI.remove(tag.id);
+    map.removeTag(tag.id);
+    for (let node of map.tree.nodes) {
+      node.removeTag(tag.id);
     }
   }
 
@@ -46,7 +55,7 @@ export default observer(function FloatPanel({map, show, children}) {
         return <Tag
           color={tag.color}
           closable={true}
-          onClose={() => map.removeTag(tag.name)}
+          onClose={() => onRemoveTag(tag)}
           className={style.tag}
           key={tag.id}
         >

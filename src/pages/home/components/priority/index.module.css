@@ -1,0 +1,15 @@
+.high {
+  fill: var(--danger-color);
+}
+
+.medium {
+  fill: var(--warning-color);
+}
+
+.low {
+  fill: var(--success-color);
+}
+
+.high, .medium, .low {
+  text-anchor: middle;
+}

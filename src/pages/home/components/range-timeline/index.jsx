@@ -1,6 +1,6 @@
 import { observer } from "mobx-react";
 import { Tooltip } from "antd";
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { DAY_UNIT_HEIGHT } from "../../constant";
 import { pointDistance } from "../../../../utils/math";
 import { MILLSECONDS_PER_DAY } from "../../../../constants/number";

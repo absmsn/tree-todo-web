@@ -1,17 +1,34 @@
 // 该组件用于展示在与svg交互时需展示的控件
-import { useEffect, useRef, useState } from "react";
-import { CheckOutlined } from "@ant-design/icons";
-import { Menu, MenuItem } from "../../../../components/menu";
+import { useEffect, useState } from "react";
+import { Dropdown, message } from "antd";
 import { PLAIN_NODE_DEFAULT_SIZE } from "../../../../constants/geometry";
 import { getChildNodePosition, reArrangeTree } from "../../../../utils/graph";
-import { Add_PRECURSOR_TASK } from "../../../../constants/event";
+import { Add_CONDITION_TASK } from "../../../../constants/event";
+import nodeAPI from "../../../../apis/node";
 import eventChannel from "../../../../utils/event";
+import NodeComment from "../node-comment";
+import ConfigPopover from "../config-popover";
+import AddTagPopover from "../add-tag-popover";
+import { pointDistance } from "../../../../utils/math";
+import { useMemo } from "react";
+
+const baseDropdownItems = [
+  {key: "add-child", label: "添加子节点"},
+  {key: "edit-info", label: "修改信息"},
+  {key: "comment", label: "编辑备注"},
+  {key: "add-tag", label: "添加标签"},
+  {key: "edit-notes", label: "编辑笔记"},
+  {key: "add-condition-task", label: "作为前置任务"},
+  {key: "set-background", label: "设置背景"}
+];
 
 const markAsFinished = node => {
-  const stack = [node];
+  const stack = [node], ids= [], mutations = [], mutation = {finished: true};
   while (stack.length) {
     let n = stack.pop();
     if (!n.finished) {
+      ids.push(n.id);
+      mutations.push(mutation);
       n.setFinished(true);
       for(let i = 0; i < n.children.length; i++) {
         if (!n.children[i].finished) {
@@ -27,16 +44,21 @@ const markAsFinished = node => {
     if (not) {
       break;
     }
+    ids.push(n.id);
+    mutations.push(mutation);
     n.parent.setFinished(true);
     n = n.parent;
   }
+  nodeAPI.editBatch(ids, mutations);
 }
 
 const markAsUnfinished = node => {
-  const stack = [node];
+  const stack = [node], ids= [], mutations = [], mutation = {finished: false};
   while (stack.length) {
     let n = stack.pop();
     if (n.finished) {
+      ids.push(n.id);
+      mutations.push(mutation);
       n.setFinished(false);
       for(let i = 0; i < n.children.length; i++) {
         if (n.children[i].finished) {
@@ -50,43 +72,107 @@ const markAsUnfinished = node => {
     if (!n.parent.finished) {
       break;
     }
+    ids.push(n.id);
+    mutations.push(mutation);
     n.parent.setFinished(false);
     n = n.parent;
   }
+  nodeAPI.editBatch(ids, mutations);
 }
 
 export default function NodeMenu({
-  x,
-  y,
   map,
-  node,
   tree,
-  isMenuShow,
-  setIsMenuShow,
-  setIsAddTagShow,
-  setIsCommentShow,
-  setConfigPopoverShow
+  svgRef
 }) {
+  const [left, setLeft] = useState(0); // 弹出窗口距离父容器左边缘的距离
+  const [top, setTop] = useState(0);
+  const [node, setNode] = useState(null);
+  const [isAddTagShow, setIsAddTagShow] = useState(false);
+  const [isCommentShow, setIsCommentShow] = useState(false);
+  const [configPopoverShow, setConfigPopoverShow] = useState(false);
+  const [menuShow, setMenuShow] = useState(false);
+  const [messageAPI, messageContext] = message.useMessage();
+  const nodePos = useMemo(() => {
+    const pos = {x: 0, y: 0};
+    if (node) {
+      const nodeClientPos = map.coordination.svgToClient(node.x, node.y);
+      pos.x = nodeClientPos.x - map.coordination.svgLeft;
+      pos.y = nodeClientPos.y - map.coordination.svgTop;
+    }
+    return pos;
+  }, [node]);
+
+  let nodeCommentView = null;
+  if (isCommentShow && node) {
+    // 节点的中心位置在client中的坐标
+    nodeCommentView = <NodeComment
+      node={node}
+      show={isCommentShow}
+      x={nodePos.x}
+      y={nodePos.y}
+      setIsCommentShow={setIsCommentShow}
+    />
+  }
+
   const onAddChild = async () => {
     let center = getChildNodePosition(node, PLAIN_NODE_DEFAULT_SIZE);
-    tree.addNode(node.id, {
+    const newNode = tree.addNode(node, {
       x: center.x,
       y: center.y,
       r: PLAIN_NODE_DEFAULT_SIZE
     });
+    const nodeResult = (await nodeAPI.add({
+      mapId: map.id,
+      title: newNode.title,
+      finished: newNode.finished,
+      comment: newNode.comment,
+      priority: newNode.priority,
+      parentId: node.id
+    })).data;
+    newNode.setId(nodeResult.id);
     await reArrangeTree(tree);
   };
+
+  useEffect(() => {
+    const onContextMenu = e => {
+      e.preventDefault();
+      const pos = map.coordination.clientToSvg(e.clientX, e.clientY);
+      for (let i = 0; i < tree.nodes.length; i++) {
+        const node = tree.nodes[i];
+        if (pointDistance(pos.x, pos.y, node.x, node.y) <= node.r) {
+          const box = svgRef.current.getBoundingClientRect();
+          setLeft(e.clientX - box.left);
+          setTop(e.clientY - box.top);
+          setNode(node);
+          setMenuShow(true);
+          break;
+        }
+      }
+    };
+    const onClick = () => {
+      setMenuShow(false);
+    };
+    svgRef.current.addEventListener("contextmenu", onContextMenu);
+    document.addEventListener("click", onClick);
+    return () => {
+      if (svgRef.current) {
+        svgRef.current.removeEventListener("contextmenu", onContextMenu);
+      }
+      document.removeEventListener("click", onClick);
+    }
+  }, []);
 
   const onAddComment = () => {
     setIsCommentShow(true);
   }
 
   const onRemoveNode = async () => {
-    tree.removeNode(node.id);
+    await tree.removeNode(node.id);
     await reArrangeTree(tree);
   }
 
-  const onEditConfigClick = () => {
+  const onEditConfig = () => {
     setConfigPopoverShow(true);
   }
 
@@ -94,42 +180,123 @@ export default function NodeMenu({
     setIsAddTagShow(true);
   }
 
+  const setBackground = () => {
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = "image/*";
+    input.click();
+    input.addEventListener("change", async (e) => {
+      const file = e.target.files[0];
+      if (file.size <= 10485760) {
+        await nodeAPI.setBackground(node.id, file);
+        const fileReader = new FileReader();
+        fileReader.readAsDataURL(file);
+        fileReader.addEventListener("load", () => {
+          node.setBackgroundImageURL(fileReader.result);
+        });
+      } else {
+        messageAPI.warning("文件大小不能超过10M!");
+      }
+    });
+  }
+
+  const removeBackground = async () => {
+    await nodeAPI.removeBackground(node.id);
+    node.setBackgroundImageURL("");
+  }
+
+  const onEditNotes = () => {
+
+  }
+
   // 通知tree添加一个前驱任务
-  const addPrecursorTask = (e) => {
-    eventChannel.emit(Add_PRECURSOR_TASK, map.id, node, e);
+  const addConditionTask = (e) => {
+    eventChannel.emit(Add_CONDITION_TASK, map.id, node, e);
+  }
+
+  const onClick = ({key, domEvent}) => {
+    switch(key) {
+      case "add-child":
+        onAddChild();
+        break;
+      case "edit-info":
+        onEditConfig();
+        break;
+      case "remove-node":
+        onRemoveNode();
+        break
+      case "comment":
+        onAddComment();
+        break;
+      case "add-tag":
+        onAddTag();
+        break;
+      case "set-background":
+        setBackground();
+        break;
+      case "remove-background":
+        removeBackground();
+        break;
+      case "edit-notes":
+        onEditNotes();
+        break;
+      case "add-condition-task":
+        addConditionTask(domEvent);
+        break;
+      case "mark-as-unfinished":
+        markAsUnfinished(node);
+        break;
+      case "mark-as-finished":
+        markAsFinished(node);
+        break;
+    }
   }
 
   return (
-    <Menu show={isMenuShow} setShow={setIsMenuShow} x={x} y={y}>
-      <MenuItem key="add-child" onClick={onAddChild}>
-        添加子节点
-      </MenuItem>
-      <MenuItem key="edit-config" onClick={onEditConfigClick}>
-        编辑配置
-      </MenuItem>
+    <>
+      {messageContext}
+      <Dropdown
+        menu={{
+          items: [
+            ...baseDropdownItems,
+            node?.backgroundImageURL && {key: "remove-background", label: "删除背景"},
+            node?.finished
+              ? {key: "mark-as-unfinished", label: "标记为未完成"}
+              : {key: "mark-as-finished", label: "标记为已完成"},
+            node?.parent && {key: "remove-node", label: "删除节点"}
+          ],
+          onClick: onClick
+        }}
+        open={menuShow}
+      >
+        <div style={{
+          position: "absolute",
+          left: left,
+          top: top,
+          width: 0,
+          height: 0,
+        }}></div>
+      </Dropdown>
+      {nodeCommentView}
       {
-        node.parent && <MenuItem key="remove-node" onClick={onRemoveNode}>
-          删除节点
-        </MenuItem>
+        configPopoverShow && <ConfigPopover
+          x={nodePos.x}
+          y={nodePos.y}
+          node={node}
+          show={configPopoverShow}
+          setShow={setConfigPopoverShow}
+        />
       }
-      <MenuItem key="comment" onClick={onAddComment}>
-        编辑备注
-      </MenuItem>
-      <MenuItem key="add-tag" onClick={onAddTag}>
-        添加标签
-      </MenuItem>
-      <MenuItem key="add-precursor-task" onClick={addPrecursorTask}>
-        作为前置任务
-      </MenuItem>
       {
-        node.finished
-          ? <MenuItem key="mark" onClick={() => markAsUnfinished(node)} right={<CheckOutlined />}>
-            标记为未完成
-          </MenuItem>
-          : <MenuItem key="mark" onClick={() => markAsFinished(node)}>
-            标记为已完成
-          </MenuItem>
+        isAddTagShow && <AddTagPopover
+          x={nodePos.x}
+          y={nodePos.y}
+          map={map}
+          node={node}
+          show={isAddTagShow}
+          setShow={setIsAddTagShow}
+        />
       }
-    </Menu>
+    </>
   )
 };

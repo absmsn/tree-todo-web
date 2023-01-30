@@ -12,7 +12,9 @@
   --border-shadow-color: #e0e0e0;
   --dimmed-color: #8c8c8c;
   --disabled-color: #8c8c8c;
-  --danger-color: #f5222d;
+  --danger-color: #cf1322;
+  --warning-color: #d4b106;
+  --success-color: #7cb305;
   --unfinished-color: grey;
   --finished-color: green;
 }
@@ -58,4 +60,16 @@ code {
 
 .danger {
   color: var(--danger-color);
+}
+
+.warning {
+  color: var(--warning-color);
+}
+
+.success {
+  color: var(--success-color);
+}
+
+.tooltip-style {
+  font-size: 0.875rem !important;
 }

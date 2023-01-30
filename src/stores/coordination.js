@@ -3,9 +3,12 @@ import { makeAutoObservable } from "mobx";
 export default class CoordinationStore {
   scale = 1;
 
-  viewBoxLeft = 0;
-
-  viewBoxTop = 0;
+  viewBox = {
+    left: 0,
+    top: 0,
+    width: 0,
+    height: 0
+  };
 
   svgLeft = 0; // svg的clientX坐标
 
@@ -19,9 +22,19 @@ export default class CoordinationStore {
     this.scale = scale;
   }
 
-  setViewBox(left, top) {
-    this.viewBoxLeft = left;
-    this.viewBoxTop = top;
+  setViewBox({left, top, width, height}) {
+    if (left !== undefined) {
+      this.viewBox.left = left;
+    }
+    if (top !== undefined) {
+      this.viewBox.top = top;
+    }
+    if (width !== undefined) {
+      this.viewBox.width = width;
+    }
+    if (height !== undefined) {
+      this.viewBox.height = height;
+    }
   }
 
   setSvgOffset(left, top) {
@@ -31,15 +44,15 @@ export default class CoordinationStore {
 
   clientToSvg(x, y) {
     return {
-      x: this.viewBoxLeft + (x - this.svgLeft) * this.scale,
-      y: this.viewBoxTop + (y - this.svgTop) * this.scale
+      x: this.viewBox.left + (x - this.svgLeft) * this.scale,
+      y: this.viewBox.top + (y - this.svgTop) * this.scale
     };
   }
 
   svgToClient(x, y) {
     return {
-      x: (x - this.viewBoxLeft) / this.scale + this.svgLeft,
-      y: (y - this.viewBoxTop) / this.scale + this.svgTop
+      x: (x - this.viewBox.left) / this.scale + this.svgLeft,
+      y: (y - this.viewBox.top) / this.scale + this.svgTop
     };
   }
 }
