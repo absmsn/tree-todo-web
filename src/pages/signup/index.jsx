@@ -19,7 +19,7 @@ export default observer(function Signup() {
     if (email && password) {
       try {
         await userAPI.signup(email, password);
-        messageAPI.error("注册成功!");
+        messageAPI.success("注册成功!");
         navigate("/");
       } catch(e) {
         let text = "注册失败!";
