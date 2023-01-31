@@ -1,5 +1,6 @@
 // 该组件用于展示在与svg交互时需展示的控件
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
+import { observer } from "mobx-react";
 import { Dropdown, message } from "antd";
 import { PLAIN_NODE_DEFAULT_SIZE } from "../../../../constants/geometry";
 import { getChildNodePosition, reArrangeTree } from "../../../../utils/graph";
@@ -10,7 +11,6 @@ import NodeComment from "../node-comment";
 import ConfigPopover from "../config-popover";
 import AddTagPopover from "../add-tag-popover";
 import { pointDistance } from "../../../../utils/math";
-import { useMemo } from "react";
 
 const baseDropdownItems = [
   {key: "add-child", label: "添加子节点"},
@@ -80,7 +80,7 @@ const markAsUnfinished = node => {
   nodeAPI.editBatch(ids, mutations);
 }
 
-export default function NodeMenu({
+export default observer(function NodeMenu({
   map,
   tree,
   svgRef
@@ -101,7 +101,7 @@ export default function NodeMenu({
       pos.y = nodeClientPos.y - map.coordination.svgTop;
     }
     return pos;
-  }, [node]);
+  }, [node, node?.x, node?.y]);
 
   let nodeCommentView = null;
   if (isCommentShow && node) {
@@ -299,4 +299,4 @@ export default function NodeMenu({
       }
     </>
   )
-};
+});

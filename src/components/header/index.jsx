@@ -8,7 +8,7 @@ import {
   PoweroffOutlined
 } from "@ant-design/icons";
 import { Select, Modal, Form, Input, message, Switch, Popconfirm, Dropdown } from "antd";
-import {observer} from "mobx-react";
+import { observer } from "mobx-react";
 import { useNavigate } from "react-router-dom";
 import { DarkModeContext } from "../../App";
 import mapAPI from "../../apis/map";
@@ -25,11 +25,11 @@ const getMapSelect = maps => maps.map(map => ({
 }));
 
 const menuItems = [
-  {key: "setting", label: "设置", itemIcon: <SettingOutlined className={style.accountMenuIcon} />},
-  {key: "signout", label: "注销", itemIcon: <PoweroffOutlined className={style.accountMenuIcon} />}
+  { key: "setting", label: "设置", itemIcon: <SettingOutlined className={style.accountMenuIcon} /> },
+  { key: "signout", label: "注销", itemIcon: <PoweroffOutlined className={style.accountMenuIcon} /> }
 ];
 
-const AddMapModal = observer(({showAddModal, setShowAddModal, mapsStore}) => {
+const AddMapModal = observer(({ showAddModal, setShowAddModal, mapsStore }) => {
   const [newMapName, setNewMapName] = useState("");
 
   const addMap = async () => {
@@ -47,7 +47,7 @@ const AddMapModal = observer(({showAddModal, setShowAddModal, mapsStore}) => {
     <Modal
       title="创建一张新图"
       centered={true}
-      style={{maxWidth: 400}}
+      style={{ maxWidth: 400 }}
       maskStyle={maskModalStyle}
       cancelText="取消"
       okText="创建"
@@ -70,8 +70,8 @@ const AddMapModal = observer(({showAddModal, setShowAddModal, mapsStore}) => {
           labelAlign="left"
           rules={[{ required: true, message: '请输入图的名称' }]}
         >
-          <Input 
-            value={newMapName} 
+          <Input
+            value={newMapName}
             onInput={e => setNewMapName(e.target.value)}
             onPressEnter={addMap}
           />
@@ -83,7 +83,7 @@ const AddMapModal = observer(({showAddModal, setShowAddModal, mapsStore}) => {
 
 const Header = observer(({ appStore, mapsStore }) => {
   const maps = mapsStore.maps;
-  const {on: dark, set: setDarkMode} = useContext(DarkModeContext);
+  const { on: dark, set: setDarkMode } = useContext(DarkModeContext);
   const [showAddModal, setShowAddModal] = useState(false);
   const [messageApi, contextHolder] = message.useMessage();
   const navigate = useNavigate();
@@ -108,8 +108,8 @@ const Header = observer(({ appStore, mapsStore }) => {
     }
   }
 
-  const onMenuClick = ({key}) => {
-    switch(key) {
+  const onMenuClick = ({ key }) => {
+    switch (key) {
       case "setting":
         break;
       case "signout":
@@ -147,18 +147,22 @@ const Header = observer(({ appStore, mapsStore }) => {
         </div>
         <div className={style.iconArea}>
           <div className={`${style.iconWrapper} ${maps.length > 1 ? "danger" : "disabled"}`}>
-            <Popconfirm
-              title="删除图"
-              description="确定要删除吗?"
-              okText="确认"
-              cancelText="取消"
-              onConfirm={deleteMap}
-            >
-              <DeleteOutlined />
-            </Popconfirm>
+            {
+              maps.length > 1
+                ? <Popconfirm
+                  title="删除图"
+                  description="确定要删除吗?"
+                  okText="确认"
+                  cancelText="取消"
+                  onConfirm={deleteMap}
+                >
+                  <DeleteOutlined />
+                </Popconfirm>
+                : <DeleteOutlined />
+            }
           </div>
           <div className={`icon-color ${style.iconWrapper}`}>
-            <PlusOutlined onClick={() => setShowAddModal(true)}/>
+            <PlusOutlined onClick={() => setShowAddModal(true)} />
           </div>
           <div className={`icon-color ${style.iconWrapper}`}><ImportOutlined /></div>
           <div className={`icon-color ${style.iconWrapper}`}><ExportOutlined /></div>
