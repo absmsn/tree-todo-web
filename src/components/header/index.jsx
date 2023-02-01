@@ -81,6 +81,7 @@ const AccountPanel = ({appStore}) => {
   const email = localStorage.getItem("email");
   const navigate = useNavigate();
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showSignoutModal, setShowSignoutModal] = useState(false);
   const [messageApi, contextHolder] = message.useMessage();
   const deleteAccount = async () => {
     const userId = localStorage.getItem("userId");
@@ -93,6 +94,13 @@ const AccountPanel = ({appStore}) => {
     } catch (e) {
       messageApi.error("删除账户失败!");
     }
+  }
+  const onSignout = () => {
+    setShowSignoutModal(false)
+    localStorage.clear();
+    navigate("/login");
+    // 重置当前用户的数据
+    appStore.exit();
   }
   const menuItems = [
     { 
@@ -117,10 +125,7 @@ const AccountPanel = ({appStore}) => {
       case "setting":
         break;
       case "signout":
-        localStorage.clear();
-        navigate("/login");
-        // 重置当前用户的数据
-        appStore.exit();
+        setShowSignoutModal(true);
         break;
       case "delete-account":
         setShowDeleteModal(true);
@@ -131,6 +136,20 @@ const AccountPanel = ({appStore}) => {
   return (
     <div className={`icon-color ${style.avatarArea}`}>
       {contextHolder}
+      <Modal
+        title="注销"
+        centered={true}
+        style={{ maxWidth: 400 }}
+        maskStyle={maskModalStyle}
+        cancelText="取消"
+        okText="注销"
+        destroyOnClose={true}
+        open={showSignoutModal}
+        onOk={onSignout}
+        onCancel={() => setShowSignoutModal(false)}
+      >
+        确定要退出吗?
+      </Modal>
       <Modal
         title="删除账户"
         centered={true}
