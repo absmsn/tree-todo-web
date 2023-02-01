@@ -122,6 +122,7 @@ export default observer(function NodeMenu({
       y: center.y,
       r: PLAIN_NODE_DEFAULT_SIZE
     });
+    await reArrangeTree(tree);
     const nodeResult = (await nodeAPI.add({
       mapId: map.id,
       title: newNode.title,
@@ -131,7 +132,6 @@ export default observer(function NodeMenu({
       parentId: node.id
     })).data;
     newNode.setId(nodeResult.id);
-    await reArrangeTree(tree);
   };
 
   useEffect(() => {

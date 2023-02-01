@@ -11,6 +11,7 @@ import { Select, Modal, Form, Input, message, Switch, Popconfirm, Dropdown } fro
 import { observer } from "mobx-react";
 import { useNavigate } from "react-router-dom";
 import { DarkModeContext } from "../../App";
+import userAPI from "../../apis/user";
 import mapAPI from "../../apis/map";
 import style from "./style.module.css";
 
@@ -23,11 +24,6 @@ const getMapSelect = maps => maps.map(map => ({
   value: map.id,
   label: map.name
 }));
-
-const menuItems = [
-  { key: "setting", label: "设置", itemIcon: <SettingOutlined className={style.accountMenuIcon} /> },
-  { key: "signout", label: "注销", itemIcon: <PoweroffOutlined className={style.accountMenuIcon} /> }
-];
 
 const AddMapModal = observer(({ showAddModal, setShowAddModal, mapsStore }) => {
   const [newMapName, setNewMapName] = useState("");
@@ -81,13 +77,91 @@ const AddMapModal = observer(({ showAddModal, setShowAddModal, mapsStore }) => {
   )
 });
 
+const AccountPanel = ({appStore}) => {
+  const email = localStorage.getItem("email");
+  const navigate = useNavigate();
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [messageApi, contextHolder] = message.useMessage();
+  const deleteAccount = async () => {
+    const userId = localStorage.getItem("userId");
+    try {
+      await userAPI.delete(userId);
+      localStorage.clear();
+      navigate("/login");
+      // 重置当前用户的数据
+      appStore.exit();
+    } catch (e) {
+      messageApi.error("删除账户失败!");
+    }
+  }
+  const menuItems = [
+    { 
+      key: "setting", 
+      label: "设置", 
+      itemIcon: <SettingOutlined className={style.accountMenuIcon} /> 
+    },
+    { 
+      key: "signout", 
+      label: "注销", 
+      itemIcon: <PoweroffOutlined className={style.accountMenuIcon} /> 
+    },
+    { 
+      key: "delete-account", 
+      label: "删除账户",
+      itemIcon: <DeleteOutlined className={`${style.accountMenuIcon} danger`} />
+    }
+  ];
+
+  const onMenuClick = async ({ key }) => {
+    switch (key) {
+      case "setting":
+        break;
+      case "signout":
+        localStorage.clear();
+        navigate("/login");
+        // 重置当前用户的数据
+        appStore.exit();
+        break;
+      case "delete-account":
+        setShowDeleteModal(true);
+        break;
+    }
+  }
+
+  return (
+    <div className={`icon-color ${style.avatarArea}`}>
+      {contextHolder}
+      <Modal
+        title="删除账户"
+        centered={true}
+        style={{ maxWidth: 400 }}
+        maskStyle={maskModalStyle}
+        cancelText="取消"
+        okText="删除"
+        destroyOnClose={true}
+        open={showDeleteModal}
+        onOk={deleteAccount}
+        onCancel={() => setShowDeleteModal(false)}
+      >
+        确定继续吗？所有数据都将被删除!
+      </Modal>
+      <Dropdown trigger="click" menu={{
+        items: menuItems,
+        onClick: onMenuClick
+      }}>
+        {
+          <div className={style.avatar}>{email ? email[0] : ""}</div>
+        }
+      </Dropdown>
+    </div>
+  )
+}
+
 const Header = observer(({ appStore, mapsStore }) => {
   const maps = mapsStore.maps;
   const { on: dark, set: setDarkMode } = useContext(DarkModeContext);
   const [showAddModal, setShowAddModal] = useState(false);
   const [messageApi, contextHolder] = message.useMessage();
-  const navigate = useNavigate();
-  const email = localStorage.getItem("email");
 
   const onChangeMap = id => {
     const map = maps.find(map => map.id === id);
@@ -105,19 +179,6 @@ const Header = observer(({ appStore, mapsStore }) => {
       mapsStore.remove(id);
       await mapAPI.remove(id);
       messageApi.success(<span>删除图<strong>{name}</strong>成功</span>);
-    }
-  }
-
-  const onMenuClick = ({ key }) => {
-    switch (key) {
-      case "setting":
-        break;
-      case "signout":
-        localStorage.clear();
-        navigate("/login");
-        // 重置当前用户的数据
-        appStore.exit();
-        break;
     }
   }
 
@@ -166,16 +227,7 @@ const Header = observer(({ appStore, mapsStore }) => {
           </div>
           <div className={`icon-color ${style.iconWrapper}`}><ImportOutlined /></div>
           <div className={`icon-color ${style.iconWrapper}`}><ExportOutlined /></div>
-          <div className={`icon-color ${style.avatarArea}`}>
-            <Dropdown trigger="click" menu={{
-              items: menuItems,
-              onClick: onMenuClick
-            }}>
-              {
-                <div className={style.avatar}>{email ? email[0] : ""}</div>
-              }
-            </Dropdown>
-          </div>
+          <AccountPanel appStore={appStore} />
         </div>
       </div>
       <AddMapModal

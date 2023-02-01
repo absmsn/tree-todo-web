@@ -31,5 +31,8 @@ export default {
       url += `?subRelations=${subRelations.join(",")}`; 
     }
     return instance.get(url);
-  }
+  },
+  async delete(userId) {
+    return await instance.delete(`/user/${userId}`);
+  },
 };
