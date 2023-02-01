@@ -49,7 +49,7 @@ export default observer(function Signup() {
               placeholder="输入邮箱"
             />
           </Form.Item>
-          <Form.Item label="邮箱">
+          <Form.Item label="密码">
             <Input.Password
               value={password}
               onChange={e => setPassword(e.target.value)}
