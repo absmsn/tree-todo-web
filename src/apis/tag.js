@@ -11,5 +11,8 @@ export default {
   },
   async remove(tagId) {
     return instance.delete(`/tag/${tagId}`);
-  }
+  },
+  async edit(tagId, content) {
+    return instance.put(`/tag/${tagId}`, content);
+  },
 };

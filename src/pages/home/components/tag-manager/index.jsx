@@ -30,8 +30,14 @@ export default observer(function FloatPanel({map, show, children}) {
   }
 
   const handleEditTagConfirm = () => {
-    map.tags[editTagIndex].setName(editTagValue);
+    const tag = map.tags[editTagIndex];
     setEditTagIndex(-1);
+    if (editTagValue !== tag.name) {
+      tag.setName(editTagValue);
+      tagAPI.edit(tag.id, {
+        name: editTagValue
+      });
+    }
   };
 
   const handleEditInputChange = (e) => {
