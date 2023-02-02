@@ -29,8 +29,8 @@ const TimePointList = observer(({map, type="createTime", descend}) => {
         {
           sortedTasks.map(node => {
             let time = type === "createTime" 
-              ? node.createTime.toLocaleTimeString() 
-              : node.finishTime.toLocaleTimeString();
+              ? node.createTime.toLocaleString() 
+              : node.finishTime.toLocaleString();
             return <Timeline.Item key={node.id}>
               {node.title} - {time}
             </Timeline.Item>
