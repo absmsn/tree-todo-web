@@ -9,7 +9,8 @@ import nodeAPI from "../apis/node";
 const defaultNodeName = "title";
 
 // 递归的向上查询所有父节点是否已是完成状态，如果是，则设置为完成状态。
-function toggleParentFinished(node) {
+async function toggleParentFinished(node) {
+  const mutations = [], mutation = {finished: true}, ids = [];
   while (node.parent) {
     // 检查是否所有兄弟节点都是已完成状态
     let not = node.parent.children.some(d => !d.finished);
@@ -17,7 +18,12 @@ function toggleParentFinished(node) {
       break;
     }
     node.parent.setFinished(true);
+    mutations.push(mutation);
+    ids.push(node.parent.id);
     node = node.parent;
+  }
+  if (ids.length > 0) {
+    await nodeAPI.editBatch(ids, mutations);
   }
 }
 
@@ -91,7 +97,7 @@ export default class TreeStore {
     }
     // 当要被删除的节点是未完成状态，则需要检查删除该节点后它的父节点们是否可以变为完成状态。
     if (!node.finished) {
-      toggleParentFinished(node);
+      await toggleParentFinished(node);
     }
     this.nodes = this.nodes.filter(n => {
       return !toRemove.has(n);

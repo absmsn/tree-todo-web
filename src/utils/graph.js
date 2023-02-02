@@ -289,6 +289,12 @@ export function buildTreeFromNodeItems(nodes, tags, x, y) {
     if (node.endTime) {
       nodeStore.setEndTime(new Date(node.endTime));
     }
+    if (node.createTime) {
+      nodeStore.setCreateTime(new Date(node.createTime));
+    }
+    if (node.finishTime) {
+      nodeStore.setFinishTime(new Date(node.finishTime));
+    }
     if (node.tags.length > 0) {
       nodeStore.setTags(node.tags.map(tag => idTag.get(tag.tagId)));
     }

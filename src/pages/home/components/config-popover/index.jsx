@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { observer } from "mobx-react";
 import {
   Input,
@@ -54,12 +54,30 @@ const optionStyle = {
   width: 140
 };
 
-const RepeatTime = observer(({ node, startTime, endTime }) => {
-  const [repeatMonth, setRepeatMonth] = useState(node.repeatMonth);
-  const [repeatDay, setRepeatDay] = useState(node.repeatDay);
-  const [repeatHour, setRepeatHour] = useState(node.repeatHour);
-  const [repeatMinute, setRepeatMinute] = useState(node.repeatMinute);
+const timeComponentsNum = 4;
+
+const RepeatTime = observer(({ node, startTime, endTime, onRepeatChange }) => {
+  // repeat的格式: xxMxxDxxHxxm
+  const repeatComponents = useMemo(() => {
+    let components = Array(timeComponentsNum).fill(0);
+    if (node.repeat) {
+      components = node.repeat.split(/[a-zA-Z]/).map(s => Number(s));
+      components.pop();
+    }
+    return components;
+  }, [node.repeat]);
+  const [repeatMonth, setRepeatMonth] = useState(repeatComponents[0]);
+  const [repeatDay, setRepeatDay] = useState(repeatComponents[1]);
+  const [repeatHour, setRepeatHour] = useState(repeatComponents[2]);
+  const [repeatMinute, setRepeatMinute] = useState(repeatComponents[3]);
   const disabled = useMemo(() => !startTime || !endTime, [startTime, endTime]);
+
+  useEffect(() => {
+    const repeat = `${repeatMonth}M${repeatDay}D${repeatHour}H${repeatMinute}m`;
+    if (onRepeatChange) {
+      onRepeatChange(repeat);
+    }
+  }, [repeatMonth, repeatDay, repeatHour, repeatMinute]);
 
   return (
     <Form.Item label={
@@ -117,6 +135,7 @@ const RepeatTime = observer(({ node, startTime, endTime }) => {
 });
 
 export default observer(({ x, y, node, show, setShow }) => {
+  const [repeat, setRepeat] = useState(node.repeat);
   const [title, setTitle] = useState(node.title);
   const [timeRange, setTimeRange] = useState([
     node.startTime ? dayjs(node.startTime) : null,
@@ -141,6 +160,10 @@ export default observer(({ x, y, node, show, setShow }) => {
     if (priority !== node.priority) {
       node.setPriority(priority);
       mutation.priority = priority;
+    }
+    if (repeat !== node.repeat) {
+      node.setRepeat(repeat);
+      mutation.repeat = repeat;
     }
     nodeAPI.edit(node.id, mutation);
     setShow(false);
@@ -185,6 +208,7 @@ export default observer(({ x, y, node, show, setShow }) => {
             node={node}
             startTime={timeRange[0]}
             endTime={timeRange[1]}
+            onRepeatChange={(value) => setRepeat(value)}
           />
           <Form.Item label=" ">
             <Space>

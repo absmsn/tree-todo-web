@@ -9,7 +9,7 @@ import style from "./index.module.css";
 
 const sortTypeOptions = [
   { value: "createTime", label: "创建时间" },
-  { value: "finishedTime", label: "完成时间" },
+  { value: "finishTime", label: "完成时间" },
   { value: "timeRange", label: "时间区间" }
 ];
 
@@ -87,7 +87,11 @@ export default observer(({ map, tree }) => {
                   filterFinished={finishedType}
                 />
               </div>
-            : <TimePointList />
+            : <TimePointList 
+                map={map}
+                type={sortType}
+                descend={timeOrder === "descend"}
+              />
         }
       </div>
     </div>

@@ -34,7 +34,7 @@ export default class NodeStore {
 
   selected = false;
 
-  repeatDuration = null;
+  repeat = "";
 
   startTime = null;
 
@@ -111,12 +111,24 @@ export default class NodeStore {
     this.finishTime = new Date();
   }
 
+  setRepeat(repeat) {
+    this.repeat = repeat;
+  }
+
   setStartTime(time) {
     this.startTime = time;
   }
 
   setEndTime(time) {
     this.endTime = time;
+  }
+  
+  setCreateTime(time) {
+    this.createTime = time;
+  }
+
+  setFinishTime(time) {
+    this.finishTime = time;
   }
 
   setSelected(selected) {

@@ -4,7 +4,6 @@ export default {
   add({
     mapId,
     title,
-    finishedTime,
     finished,
     comment,
     priority,
@@ -13,7 +12,6 @@ export default {
     return instance.post("/node", {
       mapId,
       title,
-      finishedTime,
       finished,
       comment,
       priority,

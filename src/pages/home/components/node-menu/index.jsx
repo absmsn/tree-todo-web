@@ -44,7 +44,7 @@ const markAsFinished = node => {
     if (not) {
       break;
     }
-    ids.push(n.id);
+    ids.push(n.parent.id);
     mutations.push(mutation);
     n.parent.setFinished(true);
     n = n.parent;
@@ -72,7 +72,7 @@ const markAsUnfinished = node => {
     if (!n.parent.finished) {
       break;
     }
-    ids.push(n.id);
+    ids.push(n.parent.id);
     mutations.push(mutation);
     n.parent.setFinished(false);
     n = n.parent;
