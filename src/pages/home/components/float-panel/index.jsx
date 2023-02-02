@@ -61,7 +61,7 @@ export default observer(function FloatPanel({map, isMouseZoom, setIsMouseZoom}) 
   return (
     <div className={style.container}>
       <TagManager map={map} show={isTagPanelShow}>
-        <Tooltip placement="leftTop" title="管理标签" overlayClassName={"tooltip-style"}>
+        <Tooltip placement="bottom" title="管理标签" overlayClassName={"tooltip-style"}>
           <Icon
             className="icon-color"
             selected={isTagPanelShow}
@@ -71,7 +71,7 @@ export default observer(function FloatPanel({map, isMouseZoom, setIsMouseZoom}) 
           </Icon>
         </Tooltip>
       </TagManager>
-      <Tooltip placement="leftTop" title="使用鼠标进行缩放" overlayClassName={"tooltip-style"}>
+      <Tooltip placement="bottom" title="使用鼠标进行缩放" overlayClassName={"tooltip-style"}>
         <Icon
           className="icon-color"
           selected={isMouseZoom}
@@ -80,12 +80,12 @@ export default observer(function FloatPanel({map, isMouseZoom, setIsMouseZoom}) 
           <FullscreenOutlined />
         </Icon>
       </Tooltip>
-      <Tooltip placement="leftTop" title="居中" overlayClassName={"tooltip-style"}>
+      <Tooltip placement="bottom" title="居中" overlayClassName={"tooltip-style"}>
         <Icon className="icon-color" onClick={onCenterMap}>
           <FullscreenExitOutlined />
         </Icon>
       </Tooltip>
-      <Tooltip placement="leftTop" title="重置缩放比例" overlayClassName={"tooltip-style"}>
+      <Tooltip placement="bottomRight" title="重置缩放比例" overlayClassName={"tooltip-style"}>
         <Icon className="icon-color" onClick={resetScale}>
           <SelectOutlined />
         </Icon>
