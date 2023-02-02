@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useContext } from "react";
 import { observer } from "mobx-react";
 import { notification, Space, Tooltip } from "antd";
 import { Howl } from "howler";
+import Priority from "../priority";
 import NodeTags from "../node-tags";
 import RangeProgress from "../range-progress";
 import DeadlineRemind from "../deadline-remind";
@@ -12,7 +13,6 @@ import { reArrangeTree } from "../../../../utils/graph";
 import { toHourMinute } from "../../../../utils/time";
 import nodeAPI from "../../../../apis/node";
 import style from "./index.module.css";
-import Priority from "../priority";
 
 const initialPos = {x: 0, y: 0};
 
@@ -212,20 +212,6 @@ export default observer(({ node, tree, coordination, dark }) => {
         className={`${nearDeadline ? style.nearDeadline : ""}`}
         style={{cursor: isMouseDown ? "grabbing" : ""}}
       >
-        <Tooltip
-          title={node.comment} 
-          placement="right"
-          className="tooltip-style"
-        >
-          <circle
-            cx={node.x}
-            cy={node.y}
-            r={node.r}
-            stroke={node.stroke}
-            strokeWidth={node.strokeWidth}
-            className={`${style.contentCircle} ${node.finished ? style.finished : style.unfinished}`}
-          />
-        </Tooltip>
         {
           node.backgroundImageURL && <>
             <defs>
@@ -240,10 +226,23 @@ export default observer(({ node, tree, coordination, dark }) => {
               height={node.r * 2}
               width={node.r * 2}
               clipPath={`url(#bg-${node.id})`}
-              opacity={0.75}
             />
           </>
         }
+        <Tooltip
+          title={node.comment} 
+          placement="right"
+          className="tooltip-style"
+        >
+          <circle
+            cx={node.x}
+            cy={node.y}
+            r={node.r}
+            stroke={node.stroke}
+            strokeWidth={node.strokeWidth}
+            className={`${style.contentCircle} ${node.backgroundImageURL && style.mask} ${node.finished ? style.finished : style.unfinished}`}
+          />
+        </Tooltip>
         {
           node.selected && <circle
             cx={node.x}

@@ -42,6 +42,10 @@
   fill: #f4f4f4;
 }
 
+.mask {
+  fill-opacity: 0.5;
+}
+
 .dark .finished {
   fill: #135200;
 }
