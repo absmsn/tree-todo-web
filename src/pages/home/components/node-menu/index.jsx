@@ -10,6 +10,10 @@ import eventChannel from "../../../../utils/event";
 import NodeComment from "../node-comment";
 import ConfigPopover from "../config-popover";
 import AddTagPopover from "../add-tag-popover";
+import { 
+  markAsFinished,
+  markAsUnfinished
+} from "../../../../utils/node";
 import { pointDistance } from "../../../../utils/math";
 
 const baseDropdownItems = [
@@ -21,64 +25,6 @@ const baseDropdownItems = [
   {key: "add-condition-task", label: "作为前置任务"},
   {key: "set-background", label: "设置背景"}
 ];
-
-const markAsFinished = node => {
-  const stack = [node], ids= [], mutations = [], mutation = {finished: true};
-  while (stack.length) {
-    let n = stack.pop();
-    if (!n.finished) {
-      ids.push(n.id);
-      mutations.push(mutation);
-      n.setFinished(true);
-      for(let i = 0; i < n.children.length; i++) {
-        if (!n.children[i].finished) {
-          stack.push(n.children[i]);
-        }
-      }
-    }
-  }
-  let n = node;
-  while (n.parent) {
-    // 检查是否所有兄弟节点都是已完成状态
-    let not = n.parent.children.some(d => !d.finished);
-    if (not) {
-      break;
-    }
-    ids.push(n.parent.id);
-    mutations.push(mutation);
-    n.parent.setFinished(true);
-    n = n.parent;
-  }
-  nodeAPI.editBatch(ids, mutations);
-}
-
-const markAsUnfinished = node => {
-  const stack = [node], ids= [], mutations = [], mutation = {finished: false};
-  while (stack.length) {
-    let n = stack.pop();
-    if (n.finished) {
-      ids.push(n.id);
-      mutations.push(mutation);
-      n.setFinished(false);
-      for(let i = 0; i < n.children.length; i++) {
-        if (n.children[i].finished) {
-          stack.push(n.children[i]);
-        }
-      }
-    }
-  }
-  let n = node;
-  while (n.parent) {
-    if (!n.parent.finished) {
-      break;
-    }
-    ids.push(n.parent.id);
-    mutations.push(mutation);
-    n.parent.setFinished(false);
-    n = n.parent;
-  }
-  nodeAPI.editBatch(ids, mutations);
-}
 
 export default observer(function NodeMenu({
   map,

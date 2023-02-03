@@ -15,6 +15,7 @@ import { timer } from "../../../../utils/time";
 import dayjs from "dayjs";
 import { Howl } from "howler";
 import style from "./index.module.css";
+import { markAsFinished } from "../../../../utils/node";
 
 const initialPos = {x: 0, y: 0};
 
@@ -114,10 +115,13 @@ export default observer(({ node, tree, coordination, dark }) => {
         notificationApi.info({
           message: "任务过期",
           description: <>
-            <div>任务{node.title}于{toHourMinute(node.endTime)}到期</div>
-            <Space>
-              <a>定位</a>
-              <a>标记为已完成</a>
+            <div className="mb-2">任务{node.title}于{toHourMinute(node.endTime)}到期</div>
+            <Space size={12}>
+              <a onClick={() => tree.setSelectedNode(node)}>定位</a>
+              {
+                !node.finished && <a 
+                  onClick={() => !node.finished && markAsFinished(node)}>标记为已完成</a>
+              }
             </Space>
           </>,
           duration: 30
