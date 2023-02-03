@@ -199,7 +199,7 @@ export function reArrangeTree(tree) {
       );
       for (let i = 0; i < children.length; i++) {
         // 这是父节点和子节点的连线,长度还和子节点的子节点数目相关,这里经验性的设置一个值
-        const newLinkLength = linkLength + children[i].children.length * 5;
+        const newLinkLength = linkLength + children[i].children.length * 15;
         links.push({
           source: node.id,
           target: children[i].id,
