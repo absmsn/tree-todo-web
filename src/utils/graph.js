@@ -193,15 +193,17 @@ export function reArrangeTree(tree) {
     const children = node.children;
     if (children.length !== 0) {
       // 考虑到子节点数量过多时，固定的父子节点距离不能获取合适的布局
-      const linkLength = Math.max(
+      let linkLength = Math.max(
         node.parent ? plainsDistance : rootPlainDistance,
         children.length !== 1 ? siblingMinDistanceHalf / Math.sin((Math.PI / children.length)) : 0
       );
       for (let i = 0; i < children.length; i++) {
+        // 这是父节点和子节点的连线,长度还和子节点的子节点数目相关,这里经验性的设置一个值
+        const newLinkLength = linkLength + children[i].children.length * 5;
         links.push({
           source: node.id,
           target: children[i].id,
-          linkLength
+          linkLength: newLinkLength
         });
         stack.push(children[i]);
       }

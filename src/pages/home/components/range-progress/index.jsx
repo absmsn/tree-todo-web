@@ -14,9 +14,12 @@ export default observer(function RangeProgress({ node }) {
   const [now, setNow] = useState(Date.now());
 
   useEffect(() => {
-    const timer = setInterval(() => setNow(Date.now()), 60000);
-    return () => clearInterval(timer);
-  }, []);
+    if (node.startTime && node.endTime) {
+      const unit = Math.floor((node.endTime.getTime() - node.startTime.getTime()) / 100);
+      const timer = setInterval(() => setNow(Date.now()), unit);
+      return () => clearInterval(timer);
+    }
+  }, [node.startTime, node.endTime]);
 
   const progress = useMemo(() => {
     let progress = 0, timeNow = now;
@@ -31,7 +34,7 @@ export default observer(function RangeProgress({ node }) {
       progress = Math.floor((end - timeNow) / Math.max((end - start), 1) * 360);
     }
     return progress;
-  }, [node.startTime, node.endTime, node.finished]);
+  }, [node.startTime, node.endTime, node.finished, now]);
   const endPos = useMemo(() => {
     const angle = (progress - 90) / 180 * Math.PI;
     return {
