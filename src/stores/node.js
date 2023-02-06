@@ -93,6 +93,10 @@ export default class NodeStore {
     this.parent = parent;
   }
 
+  setChildren(children) {
+    this.children = children;
+  }
+
   setPosition(x, y) {
     this.x = x;
     this.y = y;

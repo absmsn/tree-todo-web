@@ -2,7 +2,6 @@ import { isObject } from "lodash";
 import { makeAutoObservable } from "mobx";
 import { geneID } from "../utils";
 import CoordinationStore from "./coordination";
-import mapAPI from "../apis/map";
 import tagAPI from "../apis/tag";
 import Tag from "./tag";
 export default class MapStore {

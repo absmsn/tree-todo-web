@@ -10,7 +10,7 @@ import TreeStore from "../../../../stores/tree";
 import mapAPI from "../../../../apis/map";
 import nodeAPI from "../../../../apis/node";
 import {
-  reArrangeTree,
+  reArrangeTreeFull,
   buildTreeFromNodeItems
 } from "../../../../utils/graph";
 import { randomBgColor } from "../../../../utils";
@@ -44,7 +44,7 @@ const Canvas = observer(({ map }) => {
         const tree = buildTreeFromNodeItems(nodes, map.tags, offsetWidth / 2, offsetHeight / 2);
         map.setTree(tree);
         setLoading(false);
-        await reArrangeTree(tree);
+        await reArrangeTreeFull(tree);
       }
     }
     fecthData();

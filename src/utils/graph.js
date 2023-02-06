@@ -157,16 +157,48 @@ const ROOT_PLAIN_DISTANCE = ROOT_NODE_DEFAULT_SIZE + DEFAULT_EDGE_LENGTH + PLAIN
 const PLAIN_DISTANCE = PLAIN_NODE_DEFAULT_SIZE * 2 + DEFAULT_EDGE_LENGTH; // 普通子节点与其子节点的最小距离
 const SIBLING_MIN_DISTANCE_HALF = PLAIN_NODE_DEFAULT_SIZE + NODE_MIN_DISTANCE / 2 + 2; // 两个兄弟节点之间的最小距离的一半,另外添加一个常数,免受斥力影响
 
-export function reArrangeTree(tree) {
+export async function reArrangeTreeFull(tree) {
   const stack = [tree.root], nodes = [], links = [], groupsMap = new Map();
   // 两个步骤
   // 1. 使用forceLink和forceCollide确定大体轮廓,将那些没有子节点的子节点分为一组
   // 2. 使用forceLink和forceManyBody进行微调
   while (stack.length > 0) {
-    const node = stack.pop();
-    const children = node.children;
+    const node = stack.pop(), children = node.children, length = children.length;
     if (children.length !== 0) {
-      const group = [];
+      // 考虑到子节点数量过多时，固定的父子节点距离不能获取合适的布局
+      let noChildNum = 0, group = [];
+      for (let i = 0; i < children.length; i++) {
+        if (children[i].children.length === 0) {
+          noChildNum++;
+        }
+      }
+      const linkLength = Math.max(
+        node.parent ? PLAIN_DISTANCE : ROOT_PLAIN_DISTANCE,
+        noChildNum > 1 ? SIBLING_MIN_DISTANCE_HALF / Math.sin((Math.PI / noChildNum)) : 0
+      );
+      // 兄弟节点之间的夹角
+      const betweenTheta = length > 1 ? Math.asin(SIBLING_MIN_DISTANCE_HALF / linkLength) * 2 : 0;
+      // 如果是根节点，则使它的子节点均匀分布
+      if (!node.parent) {
+        const angle = (Math.PI * 2) / length;
+        for (let i = 0; i < length; i++) {
+          node.children[i].setPosition(
+            node.x + linkLength * Math.cos(angle * i),
+            node.y + linkLength * Math.sin(angle * i)
+          );
+        }
+      } else if (length > 0) {
+        // 如果不是根节点，则使它的子节点们沿着延长线两侧分布
+        const parentAngle = atan(node.y - node.parent.y, node.x - node.parent.x);
+        const initialAngle = parentAngle - (betweenTheta * (length - 1)) / 2;
+        for (let i = 0; i < length; i++) {
+          const theta = initialAngle + i * betweenTheta;
+          node.children[i].setPosition(
+            node.x + linkLength * Math.cos(theta),
+            node.y + linkLength * Math.sin(theta)
+          );
+        }
+      }
       for (let i = 0; i < children.length; i++) {
         const child = children[i];
         if (child.children.length > 0) {
@@ -183,23 +215,24 @@ export function reArrangeTree(tree) {
         }));
         const hull = getHull(points);
         const circle = getHullCircle(hull);
-        circle.id = node.id;
-        circle.depth = node.depth;
-        circle.prevX = node.x;
-        circle.prevY = node.y;
-        circle.node = node;
-        circle.nodes = group;
-        nodes.push(circle);
         // 从父节点到当前节点的连线
         if (node.parent) {
           // 获取父节点的半径,父节点已经和其子节点形成了一组或是一个单独的节点
           const parent = groupsMap.has(node.parent.id) ? groupsMap.get(node.parent.id) : node.parent;
           links.push({
-            source: node.id,
-            target: node.parent.id,
-            linkLength: parent.r + circle.r
+            source: node.parent.id,
+            target: node.id,
+            linkLength: parent.r + circle.r + node.r
           });
         }
+        circle.id = node.id;
+        circle.depth = node.depth;
+        circle.prevX = node.x;
+        circle.prevY = node.y;
+        circle.r += node.r;
+        circle.node = node;
+        circle.nodes = group;
+        nodes.push(circle);
         groupsMap.set(node.id, circle);
       } else { // 当所有子节点均有其子节点
         nodes.push({
@@ -226,72 +259,12 @@ export function reArrangeTree(tree) {
   const rootX = tree.root.x, rootY = tree.root.y;
   return new Promise((resolve) => {
     forceSimulation(nodes)
-      .alpha(0.2)
-      .alphaMin(0.1)
+      .alpha(0.5)
+      .alphaMin(0.05)
       .alphaDecay(0.05)
-      .on("end", () => {
-        const nodes = tree.nodes.map((node) => ({
-          x: node.x,
-          y: node.y,
-          id: node.id,
-          depth: node.depth,
-          r: node.r
-        }));
-        const stack = [tree.root], links = [];
-        while (stack.length > 0) {
-          const node = stack.pop();
-          const children = node.children;
-          if (children.length !== 0) {
-            // 考虑到子节点数量过多时，固定的父子节点距离不能获取合适的布局
-            let linkLength = Math.max(
-              node.parent ? PLAIN_DISTANCE : ROOT_PLAIN_DISTANCE,
-              children.length !== 1 ? SIBLING_MIN_DISTANCE_HALF / Math.sin((Math.PI / children.length)) : 0
-            );
-            for (let i = 0; i < children.length; i++) {
-              const child = children[i];
-              if (groupsMap.has(child.id)) {
-                // 在上个Simulation中已经确定了与父节点之间的距离,以此作为linkLength
-                const distance = pointDistance(node.x, node.y, child.x, child.y);
-                links.push({
-                  source: node.id,
-                  target: child.id,
-                  linkLength: distance
-                });
-              } else {
-                // 这是父节点和子节点的连线,长度还和子节点是否有子节点有关,这里经验性的设置一个值
-                const newLinkLength = linkLength + child.children.length * 15;
-                links.push({
-                  source: node.id,
-                  target: child.id,
-                  linkLength: newLinkLength
-                });
-              }
-              stack.push(child);
-            }
-          }
-        }
-        forceSimulation(nodes)
-          .alpha(0.8)
-          .alphaMin(0.2)
-          .alphaDecay(0.05)
-          .on("end", () => {
-            resolve();
-          })
-          .on("tick", throttle(() => {
-            for (let i = 0; i < nodes.length; i++) {
-              // 要始终保持根节点的位置不变
-              const disturbanceX = nodes[0].x - rootX, disturbanceY = nodes[0].y - rootY;
-              tree.nodes[i].setPosition(nodes[i].x - disturbanceX, nodes[i].y - disturbanceY);
-            }
-          }, 120))
-          .force("link", forceLink(links)
-            .id(d => d.id)
-            .distance(l => l.linkLength))
-          .force("charge", forceManyBody()
-            .strength(node => {
-              return -(300 * (.35 ** (node.depth + 1))); // 下层的节点排斥力较小
-            }))
-          .force("collide", forceCollide(d => d.r + NODE_MIN_DISTANCE));
+      .on("end", async () => {
+        await reArrangeTree(tree);
+        resolve();
       })
       .on("tick", throttle(() => {
         let rootDisturbanceX, rootDisturbanceY, root = nodes[0]; // 要始终保持根节点的位置不变
@@ -327,6 +300,93 @@ export function reArrangeTree(tree) {
         .id(d => d.id)
         .distance(l => l.linkLength))
       .force("collide", forceCollide(d => d.r));
+  });
+}
+
+export function reArrangeTree(tree) {
+  const nodes = tree.nodes.map((node) => ({
+    x: node.x,
+    y: node.y,
+    id: node.id,
+    depth: node.depth,
+    r: node.r
+  }));
+  const stack = [tree.root], links = [];
+  while (stack.length > 0) {
+    const node = stack.pop();
+    const children = node.children;
+    if (children.length !== 0) {
+      // 考虑到子节点数量过多时，固定的父子节点距离不能获取合适的布局
+      let linkLength = Math.max(
+        node.parent ? PLAIN_DISTANCE : ROOT_PLAIN_DISTANCE,
+        children.length > 1 ? SIBLING_MIN_DISTANCE_HALF / Math.sin((Math.PI / children.length)) : 0
+      );
+      for (let i = 0; i < children.length; i++) {
+        const child = children[i];
+        // 这是父节点和子节点的连线,长度还和子节点的子节点数目相关,这里经验性的设置一个值
+        const newLinkLength = linkLength + !!child.children.length * 15;
+        links.push({
+          source: node.id,
+          target: child.id,
+          linkLength: newLinkLength
+        });
+        if (child.children.length > 0) {
+          const ratio = linkLength / newLinkLength;
+          // 用于驱逐其它兄弟节点,防止这些节点覆盖父节点到某个子节点的连接
+          nodes.push({
+            x: node.x + ratio * (child.x - node.x),
+            y: node.y + ratio * (child.y - node.y),
+            r: NODE_MIN_DISTANCE / 2,
+            id: -child.id,
+            virtual: true,
+            parent: node,
+            child: child,
+            linkLength
+          });
+        }
+        stack.push(child);
+      }
+    }
+  }
+  const rootX = tree.root.x, rootY = tree.root.y;
+  return new Promise((resolve) => {
+    forceSimulation(nodes)
+      .alpha(1)
+      .alphaMin(0.1)
+      .alphaDecay(0.05)
+      .on("end", () => {
+        resolve();
+      })
+      .on("tick", throttle(() => {
+        // 要始终保持根节点的位置不变
+        const disturbanceX = nodes[0].x - rootX, disturbanceY = nodes[0].y - rootY;
+        for (let i = 0; i < nodes.length; i++) {
+          const node = nodes[i];
+          if (!node.virtual) {
+            tree.nodes[i].setPosition(node.x - disturbanceX, node.y - disturbanceY);
+          }
+        }
+        for (let i = 0; i < nodes.length; i++) {
+          const node = nodes[i];
+          if (node.virtual) {
+            const {parent, child, linkLength} = node;
+            const distance = pointDistance(child.x, child.y, parent.x, parent.y);
+            const ratio = linkLength / distance;
+            node.x = parent.x + ratio * (child.x - parent.x);
+            node.y = parent.y + ratio * (child.y - parent.y);
+            node.vx = 0;
+            node.vy = 0;
+          }
+        }
+      }, 120))
+      .force("link", forceLink(links)
+        .id(d => d.id)
+        .distance(l => l.linkLength))
+      .force("charge", forceManyBody()
+        .strength(node => {
+          return -(300 * (.35 ** (node.depth + 1)));
+        }))
+      .force("collide", forceCollide(d => d.r + NODE_MIN_DISTANCE));
   });
 }
 
@@ -401,67 +461,6 @@ export function buildTreeFromNodeItems(nodes, tags, x, y) {
         return condition;
       });
       nodeStore.setConditions(conditions);
-    }
-  }
-  const queue = [tree.root];
-  while (queue.length > 0) {
-    const node = queue.shift();
-    const children = node.children, length = children.length;
-    const distance = Math.max(
-      node.parent ? PLAIN_DISTANCE : ROOT_PLAIN_DISTANCE,
-      length > 1 ? SIBLING_MIN_DISTANCE_HALF / Math.sin((Math.PI / length)) : 0
-    );
-    if (length > 3) {
-      // 对子节点的顺序进行重排,使得有子节点的尽量远离
-      let i = 0, j = length - 1, totalChildren = 0, newArray = Array(length);
-      for (let k = 0; k < length; k++) {
-        const l = children[k].children.length;
-        if (l > 0) {
-          newArray[j] = children[k];
-          totalChildren += l;
-          j--;
-        } else {
-          newArray[i] = children[k];
-          i++;
-        }
-      }
-      let m = 0, n = 0;
-      for (let k = j + 1; k < length; k++) {
-        const per = Math.floor(newArray[k].children.length / totalChildren * i);
-        for (let t = 0; t < per; t++) {
-          children[m++] = newArray[n++];
-        }
-        children[m++] = newArray[k];
-      }
-      while (n < i) {
-        children[m++] = newArray[n++];
-      }
-    }
-    // 兄弟节点之间的夹角
-    const betweenTheta = length > 1 ? Math.asin(SIBLING_MIN_DISTANCE_HALF / distance) * 2 : 0;
-    // 如果是根节点，则使它的子节点均匀分布
-    if (!node.parent) {
-      const angle = (Math.PI * 2) / length;
-      for (let i = 0; i < length; i++) {
-        node.children[i].setPosition(
-          node.x + distance * Math.cos(angle * i),
-          node.y + distance * Math.sin(angle * i)
-        );
-      }
-    } else if (length > 0) {
-      // 如果不是根节点，则使它的子节点们沿着延长线两侧分布
-      const parentAngle = atan(node.y - node.parent.y, node.x - node.parent.x);
-      const initialAngle = parentAngle - (betweenTheta * (length - 1)) / 2;
-      for (let i = 0; i < length; i++) {
-        const theta = initialAngle + i * betweenTheta;
-        node.children[i].setPosition(
-          node.x + distance * Math.cos(theta),
-          node.y + distance * Math.sin(theta)
-        );
-      }
-    }
-    for (let i = 0; i < length; i++) {
-      queue.push(node.children[i]);
     }
   }
   return tree;
