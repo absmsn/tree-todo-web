@@ -171,11 +171,6 @@ export function reArrangeTree(tree) {
         const child = children[i];
         if (child.children.length > 0) {
           stack.push(children[i]);
-          links.push({
-            source: node.id,
-            target: children[i].id,
-            linkLength: node.parent ? ROOT_PLAIN_DISTANCE : PLAIN_DISTANCE
-          });
         } else { // 没有子节点的将和node组成一组
           group.push(child);
         }
@@ -254,7 +249,7 @@ export function reArrangeTree(tree) {
             );
             for (let i = 0; i < children.length; i++) {
               const child = children[i];
-              if (groupsMap.has(child.id)) { 
+              if (groupsMap.has(child.id)) {
                 // 在上个Simulation中已经确定了与父节点之间的距离,以此作为linkLength
                 const distance = pointDistance(node.x, node.y, child.x, child.y);
                 links.push({
