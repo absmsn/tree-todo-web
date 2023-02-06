@@ -14,7 +14,7 @@ export function pointDistance(x1, y1, x2, y2) {
 
 export function atan(offsetY, offsetX) {
   let theta = Math.atan(offsetY / offsetX);
-  if (offsetX <= 0) {
+  if (offsetX < 0) {
     theta += Math.PI;
   }
   return theta;
