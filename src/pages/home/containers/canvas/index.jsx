@@ -29,6 +29,7 @@ const Canvas = observer(({ map }) => {
   const [canvasHeight, setCanvasHeight] = useState(0);
   const [isMouseDown, setIsMouseDown] = useState(false);
   const [isMouseZoom, setIsMouseZoom] = useState(false);
+  const [isQuickLook, setIsQuickLook] = useState(false);
  
   const items = [
     { label: "列表视图", key: "list-view", icon: map.showTaskList ? <CheckOutlined /> : false },
@@ -116,6 +117,23 @@ const Canvas = observer(({ map }) => {
       document.removeEventListener("wheel", wheel);
     });
   }, []);
+
+  useEffect(() => {
+    if (isQuickLook) {
+      const move = e => {
+        if (e.altKey) {
+          map.coordination.setViewBox({
+            left: map.coordination.viewBox.left + e.movementX * 4,
+            top: map.coordination.viewBox.top + e.movementY * 4
+          });
+        }
+      }
+      svgRef.current.addEventListener("mousemove", move);
+      return (() => {
+        svgRef.current.removeEventListener("mousemove", move);
+      });
+    }
+  }, [isQuickLook]);
 
   const onMenuClick = ({key}) => {
     switch (key) {
@@ -227,13 +245,13 @@ const Canvas = observer(({ map }) => {
       ref={containerRef}
     >
       <div className={style.floatLine}>
-        <SearchPanel
-          map={map}
-        />
+        <SearchPanel map={map} />
         <FloatPanel
           map={map}
           isMouseZoom={isMouseZoom}
           setIsMouseZoom={setIsMouseZoom}
+          isQuickLook={isQuickLook}
+          setIsQuickLook={setIsQuickLook}
         />
       </div>
       <Spin spinning={loading}>

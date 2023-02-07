@@ -5,6 +5,7 @@ import { Tooltip } from "antd";
 import {
   TagsOutlined,
   SelectOutlined,
+  ThunderboltOutlined,
   FullscreenOutlined,
   FullscreenExitOutlined
 } from "@ant-design/icons";
@@ -22,7 +23,7 @@ const Icon = styled.div`
   background-color: ${props => props.selected ? "var(--selected-bgColor)" : "var(--bgColor)"}
 `;
 
-export default observer(function FloatPanel({map, isMouseZoom, setIsMouseZoom}) {
+export default observer(function FloatPanel({map, isMouseZoom, setIsMouseZoom, isQuickLook, setIsQuickLook}) {
   const [isTagPanelShow, setIsTagPanelShow] = useState(false);
 
   const resetScale = () => {
@@ -78,6 +79,15 @@ export default observer(function FloatPanel({map, isMouseZoom, setIsMouseZoom}) 
           onClick={() => setIsMouseZoom(!isMouseZoom)}
         >
           <FullscreenOutlined />
+        </Icon>
+      </Tooltip>
+      <Tooltip placement="bottom" title="快速查看，请按住alt或option键" overlayClassName={"tooltip-style"}>
+        <Icon
+          className="icon-color"
+          selected={isQuickLook}
+          onClick={() => setIsQuickLook(!isQuickLook)}
+        >
+          <ThunderboltOutlined />
         </Icon>
       </Tooltip>
       <Tooltip placement="bottom" title="居中" overlayClassName={"tooltip-style"}>
