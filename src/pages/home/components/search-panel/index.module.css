@@ -1,3 +1,8 @@
 .mainContainer {
+  border-radius: 6px;
   box-shadow: 0 0 8px var(--border-shadow-color);
+}
+
+.typeSelect {
+  width: 72px;
 }
