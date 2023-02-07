@@ -11,8 +11,11 @@ import NodeComment from "../node-comment";
 import ConfigPopover from "../config-popover";
 import AddTagPopover from "../add-tag-popover";
 import { 
+  expandChildren,
+  isWrapped,
   markAsFinished,
-  markAsUnfinished
+  markAsUnfinished,
+  wrapChildren
 } from "../../../../utils/node";
 import { pointDistance } from "../../../../utils/math";
 
@@ -25,6 +28,13 @@ const baseDropdownItems = [
   {key: "add-condition-task", label: "作为前置任务"},
   {key: "set-background", label: "设置背景"}
 ];
+
+const markAsUnfinishedItem = {key: "mark-as-unfinished", label: "标记为未完成"};
+const markAsFinishedItem = {key: "mark-as-finished", label: "标记为已完成"};
+const removeNodeItem = {key: "remove-node", label: "删除节点"};
+const removeBackgroundItem = {key: "remove-background", label: "删除背景"};
+const wrapChildrenItem = {key: "wrap-children", label: "收起子节点"};
+const expandChildrenItem = {key: "expand-children", label: "展开子节点"};
 
 export default observer(function NodeMenu({
   map,
@@ -86,7 +96,7 @@ export default observer(function NodeMenu({
       const pos = map.coordination.clientToSvg(e.clientX, e.clientY);
       for (let i = 0; i < tree.nodes.length; i++) {
         const node = tree.nodes[i];
-        if (pointDistance(pos.x, pos.y, node.x, node.y) <= node.r) {
+        if (pointDistance(pos.x, pos.y, node.x, node.y) <= node.r && !isWrapped(node)) {
           const box = svgRef.current.getBoundingClientRect();
           setLeft(e.clientX - box.left);
           setTop(e.clientY - box.top);
@@ -170,7 +180,7 @@ export default observer(function NodeMenu({
         break;
       case "remove-node":
         onRemoveNode();
-        break
+        break;
       case "comment":
         onAddComment();
         break;
@@ -195,6 +205,12 @@ export default observer(function NodeMenu({
       case "mark-as-finished":
         markAsFinished(node);
         break;
+      case "wrap-children":
+        wrapChildren(tree, node);
+        break;
+      case "expand-children":
+        expandChildren(tree, node);
+        break;
     }
   }
 
@@ -205,11 +221,12 @@ export default observer(function NodeMenu({
         menu={{
           items: [
             ...baseDropdownItems,
-            node?.backgroundImageURL && {key: "remove-background", label: "删除背景"},
+            node?.backgroundImageURL && removeBackgroundItem,
             node?.finished
-              ? {key: "mark-as-unfinished", label: "标记为未完成"}
-              : {key: "mark-as-finished", label: "标记为已完成"},
-            node?.parent && {key: "remove-node", label: "删除节点"}
+              ? markAsUnfinishedItem
+              : markAsFinishedItem,
+            node?.parent && removeNodeItem,
+            node?.childrenWrapped ? expandChildrenItem : wrapChildrenItem
           ],
           onClick: onClick
         }}

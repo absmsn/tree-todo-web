@@ -34,6 +34,8 @@ export default class NodeStore {
 
   selected = false;
 
+  childrenWrapped = false;
+
   repeat = "";
 
   startTime = null;
@@ -137,6 +139,10 @@ export default class NodeStore {
 
   setSelected(selected) {
     this.selected = selected;
+  }
+
+  setChildrenWrapped(wrapped) {
+    this.childrenWrapped = wrapped;
   }
 
   setBackgroundImageURL(url) {

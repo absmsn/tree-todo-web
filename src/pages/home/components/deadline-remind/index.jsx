@@ -40,11 +40,7 @@ export default function DeadlineRemind({ node, setNearDeadline }) {
       >
         <ExclamationCircleOutlined
           ref={iconRef}
-          style={{
-            position: "absolute",
-            fontSize: 12,
-            color: "var(--dimmed-color)"
-          }}
+          className="foreign-antd-icon text-xs"
         />
       </foreignObject>
     </Popover>

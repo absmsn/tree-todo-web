@@ -19,6 +19,7 @@ import {
 import TreeStore from "../stores/tree";
 import ConditionStore from "../stores/condition";
 import { randomBgColor } from ".";
+import { isWrapped } from "./node";
 
 // 在创建一个新节点时，为这个节点指定一个合适的节点坐标
 export function getChildNodePosition(parent, r, edgeLength = DEFAULT_EDGE_LENGTH) {
@@ -304,18 +305,24 @@ export async function reArrangeTreeFull(tree) {
 }
 
 export function reArrangeTree(tree) {
-  const nodes = tree.nodes.map((node) => ({
-    x: node.x,
-    y: node.y,
-    id: node.id,
-    depth: node.depth,
-    r: node.r
-  }));
+  const nodes = [];
+  for (let node of tree.nodes) {
+    if (!isWrapped(node)) {
+      nodes.push({
+        x: node.x,
+        y: node.y,
+        r: node.r,
+        id: node.id,
+        node: node,
+        depth: node.depth,
+      });
+    }
+  }
   const stack = [tree.root], links = [];
   while (stack.length > 0) {
     const node = stack.pop();
     const children = node.children;
-    if (children.length !== 0) {
+    if (children.length !== 0 || !node.childrenWrapped) {
       // 考虑到子节点数量过多时，固定的父子节点距离不能获取合适的布局
       let linkLength = Math.max(
         node.parent ? PLAIN_DISTANCE : ROOT_PLAIN_DISTANCE,
@@ -324,13 +331,16 @@ export function reArrangeTree(tree) {
       for (let i = 0; i < children.length; i++) {
         const child = children[i];
         // 这是父节点和子节点的连线,长度还和子节点的子节点数目相关,这里经验性的设置一个值
-        const newLinkLength = linkLength + !!child.children.length * 15;
+        const newLinkLength = linkLength;
+        if (!child.childrenWrapped) {
+          linkLength += !!child.children.length * 15;
+        }
         links.push({
           source: node.id,
           target: child.id,
           linkLength: newLinkLength
         });
-        if (child.children.length > 0) {
+        if (!child.childrenWrapped && child.children.length > 0) {
           const ratio = linkLength / newLinkLength;
           // 用于驱逐其它兄弟节点,防止这些节点覆盖父节点到某个子节点的连接
           nodes.push({
@@ -343,8 +353,8 @@ export function reArrangeTree(tree) {
             child: child,
             linkLength
           });
+          stack.push(child);
         }
-        stack.push(child);
       }
     }
   }
@@ -352,7 +362,7 @@ export function reArrangeTree(tree) {
   return new Promise((resolve) => {
     forceSimulation(nodes)
       .alpha(1)
-      .alphaMin(0.1)
+      .alphaMin(0.05)
       .alphaDecay(0.05)
       .on("end", () => {
         resolve();
@@ -363,7 +373,7 @@ export function reArrangeTree(tree) {
         for (let i = 0; i < nodes.length; i++) {
           const node = nodes[i];
           if (!node.virtual) {
-            tree.nodes[i].setPosition(node.x - disturbanceX, node.y - disturbanceY);
+            node.node.setPosition(node.x - disturbanceX, node.y - disturbanceY);
           }
         }
         for (let i = 0; i < nodes.length; i++) {

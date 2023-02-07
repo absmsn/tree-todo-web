@@ -57,7 +57,7 @@ export default observer(function RangeProgress({ node }) {
             </div>
           </>
       }
-      overlayInnerStyle={{ fontSize: "0.875rem" }}
+      overlayClassName="tooltip-style"
     >
       {
         // 当为0或360度时,起始和终止坐标重叠,无法确认绘制方向,使用circle

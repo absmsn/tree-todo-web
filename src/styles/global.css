@@ -73,3 +73,14 @@ code {
 .tooltip-style {
   font-size: 0.875rem !important;
 }
+
+.foreign-antd-icon {
+  position: absolute;
+  left: 0;
+  top: 0;
+  color: var(--dimmed-color);
+}
+
+.dimmed-font-color {
+  color: var(--dimmed-color);
+}

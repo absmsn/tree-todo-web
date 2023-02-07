@@ -269,7 +269,7 @@ const Canvas = observer(({ map }) => {
             onMouseUp={onMouseUp}
             onMouseMove={onMouseMove}
             onMouseLeave={onMouseLeave}
-            style={{cursor: isMouseDown ? "grabbing" : "default"}}
+            className={`${isMouseDown && "cursor-grabbing"}`}
             viewBox={[
               map.coordination.viewBox.left,
               map.coordination.viewBox.top,

@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useContext } from "react";
 import { observer } from "mobx-react";
-import { notification, Space, Tooltip, App as AntdAppConfig } from "antd";
+import { Space, Tooltip, App as AntdAppConfig } from "antd";
+import { PlusSquareOutlined } from "@ant-design/icons";
 import Priority from "../priority";
 import NodeTags from "../node-tags";
 import RangeProgress from "../range-progress";
@@ -9,7 +10,7 @@ import { TodayContext } from "../../../main";
 import { MILLSECONDS_PER_DAY } from "../../../../constants/number";
 import { DEFAULT_THIN_STROKE_WIDTH } from "../../../../constants/geometry";
 import { toHourMinute, timer } from "../../../../utils/time";
-import { markAsFinished } from "../../../../utils/node";
+import { expandChildren, markAsFinished } from "../../../../utils/node";
 import { reArrangeTree } from "../../../../utils/graph";
 import nodeAPI from "../../../../apis/node";
 import dayjs from "dayjs";
@@ -22,6 +23,21 @@ const stopPropagation = e => {
   e.stopPropagation();
   return false;
 };
+
+// 折叠和展开子节点的按钮
+const WrapExtendIcon = observer(({tree, node}) => {
+  return <foreignObject
+    x={node.x - node.r - 8}
+    y={node.y - node.r - 8}
+    width={16}
+    height={16}
+  >
+    <PlusSquareOutlined
+      className="foreign-antd-icon"
+      onClick={() => expandChildren(tree, node)}
+    />
+  </foreignObject>
+})
 
 const TitleInput = observer(({ node, isTitleInputShow, setIsTitleInputShow }) => {
   const inputRef = useRef(null);
@@ -236,8 +252,7 @@ export default observer(({ node, tree, coordination, dark }) => {
         onMouseMove={onMouseMove}
         onMouseUp={onMouseUp}
         onMouseLeave={onMouseLeave}
-        className={`${nearDeadline ? style.nearDeadline : ""}`}
-        style={{ cursor: isMouseDown ? "grabbing" : "" }}
+        className={`${nearDeadline && style.nearDeadline} ${isMouseDown && "cursor-grabbing"}`}
       >
         {
           node.backgroundImageURL && <>
@@ -277,10 +292,16 @@ export default observer(({ node, tree, coordination, dark }) => {
             className={style.emphasizeCircle}
           />
         }
-        {
-          node.priority && <Priority node={node} />
-        }
       </g>
+      {
+        !!node.priority && <Priority node={node} />
+      }
+      {
+        node.childrenWrapped && <WrapExtendIcon
+          tree={tree}
+          node={node} 
+        />
+      }
       {
         node.endTime && <RangeProgress node={node} />
       }

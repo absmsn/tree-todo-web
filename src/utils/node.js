@@ -1,4 +1,5 @@
 import nodeAPI from "../apis/node";
+import { reArrangeTree } from "./graph";
 
 export const markAsFinished = node => {
   const stack = [node], ids= [], mutations = [], mutation = {finished: true};
@@ -59,5 +60,46 @@ export const markAsUnfinished = node => {
   }
   if (ids.length > 0) {
     nodeAPI.editBatch(ids, mutations);
+  }
+}
+
+// 将所有子节点折叠
+export function wrapChildren(tree, node) {
+  const stack = [node];
+  while (stack.length > 0) {
+    const n = stack.pop();
+    n.setChildrenWrapped(true);
+    for (let i = 0; i < n.children.length; i++) {
+      const child = n.children[i];
+      if (child.children.length > 0) {
+        stack.push(child);
+      }
+    }
+  }
+  reArrangeTree(tree);
+}
+
+export function expandChildren(tree, node) {
+  const stack = [node];
+  while (stack.length > 0) {
+    const n = stack.pop();
+    if (n.childrenWrapped) {
+      n.setChildrenWrapped(false);
+    }
+    for (let i = 0; i < n.children.length; i++) {
+      const child = n.children[i];
+      if (child.children.length > 0) {
+        stack.push(child);
+      }
+    }
+  }
+  reArrangeTree(tree);
+}
+
+export function isWrapped(node) {
+  if (!node.parent) {
+    return false;
+  } else {
+    return node.parent.childrenWrapped;
   }
 }

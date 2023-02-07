@@ -8,6 +8,7 @@ import {
   whichNodeIsPointIn,
   getQuaraticBezierControlPoint
 } from "../../../../utils/graph";
+import { isWrapped } from "../../../../utils/node";
 import { Add_CONDITION_TASK } from "../../../../constants/event";
 import { DarkModeContext } from "../../../main";
 import eventChannel from "../../../../utils/event";
@@ -101,6 +102,10 @@ export default observer(function Tree({ map, tree, coordination, svgRef }) {
     }
   }
 
+  const edges = tree.edges.filter(edge => !edge.source.childrenWrapped);
+
+  const nodes = tree.nodes.filter(node => !isWrapped(node));
+
   return (
     <g>
       {conditions}
@@ -112,15 +117,15 @@ export default observer(function Tree({ map, tree, coordination, svgRef }) {
         />
       }
       {
-        tree.edges.map(edge =>
+        edges.map(edge =>
           <Edge
-            edge={edge} 
-            key={edge.id} 
+            edge={edge}
+            key={edge.id}
           />
         )
       }
       {
-        tree.nodes.map(node =>
+        nodes.map(node =>
           <Node
             node={node}
             tree={tree}
