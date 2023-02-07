@@ -92,13 +92,15 @@ export default observer(function Tree({ map, tree, coordination, svgRef }) {
     const node = tree.nodes[i], peers = node.conditions;
     for (let j = 0; j < peers.length; j++) {
       const target = peers[j].target;
-      conditions.push(<ConditionLink
-        tree={tree}
-        source={node}
-        target={target}
-        condition={peers[j]}
-        key={`${node.id}-${target.id}`}
-      />);
+      if (!isWrapped(node) && !isWrapped(target)) {
+        conditions.push(<ConditionLink
+          tree={tree}
+          source={node}
+          target={target}
+          condition={peers[j]}
+          key={`${node.id}-${target.id}`}
+        />);
+      }
     }
   }
 
