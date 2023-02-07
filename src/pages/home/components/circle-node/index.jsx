@@ -1,30 +1,32 @@
 import { useState, useEffect, useRef, useContext } from "react";
 import { observer } from "mobx-react";
-import { notification, Space, Tooltip } from "antd";
+import { notification, Space, Tooltip, App as AntdAppConfig } from "antd";
 import Priority from "../priority";
 import NodeTags from "../node-tags";
 import RangeProgress from "../range-progress";
 import DeadlineRemind from "../deadline-remind";
-import { TodayContext } from "../../../../App";
+import { TodayContext } from "../../../main";
 import { MILLSECONDS_PER_DAY } from "../../../../constants/number";
 import { DEFAULT_THIN_STROKE_WIDTH } from "../../../../constants/geometry";
+import { toHourMinute, timer } from "../../../../utils/time";
+import { markAsFinished } from "../../../../utils/node";
 import { reArrangeTree } from "../../../../utils/graph";
-import { toHourMinute } from "../../../../utils/time";
 import nodeAPI from "../../../../apis/node";
-import { timer } from "../../../../utils/time";
 import dayjs from "dayjs";
 import { Howl } from "howler";
 import style from "./index.module.css";
-import { markAsFinished } from "../../../../utils/node";
 
-const initialPos = {x: 0, y: 0};
+const initialPos = { x: 0, y: 0 };
 
-const stopPropagation = e => e.stopPropagation();
+const stopPropagation = e => {
+  e.stopPropagation();
+  return false;
+};
 
-const TitleInput = observer(({node, isTitleInputShow, setIsTitleInputShow}) => {
+const TitleInput = observer(({ node, isTitleInputShow, setIsTitleInputShow }) => {
   const inputRef = useRef(null);
   const [title, setTitle] = useState(node.title);
-  const [foreignSize, setForeignSize] = useState({width: node.r * 2, height: 0});
+  const [foreignSize, setForeignSize] = useState({ width: node.r * 2, height: 0 });
   const inputLength = node.r * 2;
 
   useEffect(() => {
@@ -80,7 +82,7 @@ const TitleInput = observer(({node, isTitleInputShow, setIsTitleInputShow}) => {
       height={foreignSize.height}
       transform={`translate(${-foreignSize.width / 2} ${-foreignSize.height / 2})`}
     >
-      <input 
+      <input
         ref={inputRef}
         value={title}
         style={{ width: inputLength }}
@@ -98,7 +100,7 @@ export default observer(({ node, tree, coordination, dark }) => {
   const [isMouseDown, setIsMouseDown] = useState(false);
   const [isMouseMoving, setIsMouseMoving] = useState(false);
   const [isTitleInputShow, setIsTitleInputShow] = useState(false);
-  const [notificationApi, notificationContext] = notification.useNotification();
+  const { notification } = AntdAppConfig.useApp();
 
   // 高亮显示当天要完成的任务
   useEffect(() => {
@@ -112,14 +114,14 @@ export default observer(({ node, tree, coordination, dark }) => {
       setNearDeadline(true);
       const timer = setTimeout(() => {
         setNearDeadline(false);
-        notificationApi.info({
+        notification.info({
           message: "任务过期",
           description: <>
             <div className="mb-2">任务{node.title}于{toHourMinute(node.endTime)}到期</div>
             <Space size={12}>
               <a onClick={() => tree.setSelectedNode(node)}>定位</a>
               {
-                !node.finished && <a 
+                !node.finished && <a
                   onClick={() => !node.finished && markAsFinished(node)}>标记为已完成</a>
               }
             </Space>
@@ -202,13 +204,32 @@ export default observer(({ node, tree, coordination, dark }) => {
       setIsMouseDown(false);
     }
   }
- 
+
+  const circleAndText = <g>
+    <circle
+      cx={node.x}
+      cy={node.y}
+      r={node.r}
+      stroke={node.stroke}
+      strokeWidth={node.strokeWidth}
+      className={`${style.contentCircle} ${node.backgroundImageURL && style.mask} ${node.finished ? style.finished : style.unfinished}`}
+    />
+    <text
+      x={node.x}
+      y={node.y}
+      dominantBaseline="middle"
+      textDecoration={node.finished ? "line-through" : ""}
+      className={style.contentText}
+    >
+      {node.title}
+    </text>
+  </g>
+
   return (
     <g
       className={`${dark ? style.dark : ""}`}
       onContextMenu={stopPropagation}
     >
-      {notificationContext}
       <g
         ref={nodeAreaRef}
         onMouseDown={onMouseDown}
@@ -216,7 +237,7 @@ export default observer(({ node, tree, coordination, dark }) => {
         onMouseUp={onMouseUp}
         onMouseLeave={onMouseLeave}
         className={`${nearDeadline ? style.nearDeadline : ""}`}
-        style={{cursor: isMouseDown ? "grabbing" : ""}}
+        style={{ cursor: isMouseDown ? "grabbing" : "" }}
       >
         {
           node.backgroundImageURL && <>
@@ -235,20 +256,17 @@ export default observer(({ node, tree, coordination, dark }) => {
             />
           </>
         }
-        <Tooltip
-          title={node.comment} 
-          placement="right"
-          className="tooltip-style"
-        >
-          <circle
-            cx={node.x}
-            cy={node.y}
-            r={node.r}
-            stroke={node.stroke}
-            strokeWidth={node.strokeWidth}
-            className={`${style.contentCircle} ${node.backgroundImageURL && style.mask} ${node.finished ? style.finished : style.unfinished}`}
-          />
-        </Tooltip>
+        {
+          node.comment
+            ? <Tooltip
+              title={node.comment}
+              placement="right"
+              overlayClassName="tooltip-style"
+            >
+              {circleAndText}
+            </Tooltip>
+            : circleAndText
+        }
         {
           node.selected && <circle
             cx={node.x}
@@ -259,15 +277,6 @@ export default observer(({ node, tree, coordination, dark }) => {
             className={style.emphasizeCircle}
           />
         }
-        <text
-          x={node.x}
-          y={node.y}
-          dominantBaseline="middle"
-          textDecoration={node.finished ? "line-through" : ""}
-          className={style.contentText}
-        >
-          {node.title}
-        </text>
         {
           node.priority && <Priority node={node} />
         }
@@ -276,7 +285,7 @@ export default observer(({ node, tree, coordination, dark }) => {
         node.endTime && <RangeProgress node={node} />
       }
       {
-        isTitleInputShow && <TitleInput 
+        isTitleInputShow && <TitleInput
           node={node}
           isTitleInputShow={isTitleInputShow}
           setIsTitleInputShow={setIsTitleInputShow}

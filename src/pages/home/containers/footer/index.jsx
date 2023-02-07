@@ -7,7 +7,7 @@ import {
   CloudSyncOutlined
 } from "@ant-design/icons";
 import { toHourMinute } from "../../../../utils/time";
-import { TodayContext } from "../../../../App";
+import { TodayContext } from "../../../main";
 import mapAPI from "../../../../apis/map";
 import style from "./index.module.css";
 import { useEffect } from "react";

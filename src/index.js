@@ -4,11 +4,12 @@ import AppStore from "./stores/app";
 import MapsStore from "./stores/maps";
 import { createBrowserRouter, redirect, RouterProvider } from 'react-router-dom';
 import reportWebVitals from './reportWebVitals';
-import App from './App';
-import './styles/global.css';
+import Main from './pages/main';
 import Signup from './pages/signup';
 import Login from './pages/login';
 import Home from './pages/home';
+import { App as AntdAppConfig} from 'antd';
+import './styles/global.css';
 
 const appStore = new AppStore();
 const mapsStore = new MapsStore();
@@ -24,7 +25,7 @@ const loggedInterceptor = async () => {
 const router = createBrowserRouter([
   {
     path: "/",
-    element: <App
+    element: <Main
       appStore={appStore}
       mapsStore={mapsStore}
     />,
@@ -58,8 +59,10 @@ const router = createBrowserRouter([
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
-  <RouterProvider router={router}>
-  </RouterProvider>
+  <AntdAppConfig>
+    <RouterProvider router={router}>
+    </RouterProvider>
+  </AntdAppConfig>
 );
 
 // If you want to start measuring performance in your app, pass a function

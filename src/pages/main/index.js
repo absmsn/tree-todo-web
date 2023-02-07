@@ -1,19 +1,19 @@
 import React, { useEffect, useRef, useState } from 'react';
-import Header from './components/header';
+import Header from '../../components/header';
 import { Outlet } from "react-router-dom";
 import { ConfigProvider, theme } from "antd";
-import { MILLSECONDS_PER_DAY } from './constants/number';
-import { DEFAULT_MAP_NAME } from './constants';
-import { getFirstMsOfDay } from './utils/time';
+import { MILLSECONDS_PER_DAY } from '../../constants/number';
+import { DEFAULT_MAP_NAME } from '../../constants';
+import { getFirstMsOfDay } from '../../utils/time';
 import relativeTime from "dayjs/plugin/relativeTime";
 import LocalizedFormat from "dayjs/plugin/localizedFormat";
-import userAPI from './apis/user';
-import mapAPI from './apis/map';
-import MapStore from './stores/map';
-import TagStore from './stores/tag';
+import userAPI from '../../apis/user';
+import mapAPI from '../../apis/map';
+import MapStore from '../../stores/map';
+import TagStore from '../../stores/tag';
 import "dayjs/locale/zh-cn";
 import dayjs from 'dayjs';
-import "./App.css";
+import "./index.css";
 
 dayjs.extend(relativeTime);
 dayjs.extend(LocalizedFormat);
@@ -29,7 +29,7 @@ const DarkModeContext = React.createContext({
   set: () => {}
 });
 
-function App({ appStore, mapsStore }) {
+function Main({ appStore, mapsStore }) {
   const todayTimer = useRef(null);
   const [today, setToday] = useState(date);
   const [darkMode, setDarkMode] = useState(false);
@@ -113,7 +113,7 @@ function App({ appStore, mapsStore }) {
   );
 }
 
-export default App;
+export default Main;
 
 export {
   TodayContext,

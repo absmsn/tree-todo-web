@@ -10,7 +10,7 @@ import {
 import { Select, Modal, Form, Input, message, Switch, Popconfirm, Dropdown } from "antd";
 import { observer } from "mobx-react";
 import { useNavigate } from "react-router-dom";
-import { DarkModeContext } from "../../App";
+import { DarkModeContext } from "../../pages/main";
 import userAPI from "../../apis/user";
 import mapAPI from "../../apis/map";
 import style from "./style.module.css";

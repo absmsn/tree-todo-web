@@ -9,7 +9,7 @@ import {
   getQuaraticBezierControlPoint
 } from "../../../../utils/graph";
 import { Add_CONDITION_TASK } from "../../../../constants/event";
-import { DarkModeContext } from "../../../../App";
+import { DarkModeContext } from "../../../main";
 import eventChannel from "../../../../utils/event";
 import nodeAPI from "../../../../apis/node";
 import style from "./index.module.css";

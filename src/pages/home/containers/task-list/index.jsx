@@ -4,7 +4,7 @@ import { computed } from "mobx";
 import { Select } from "antd";
 import RangeList from "../../components/range-list";
 import TimePointList from "../../components/timepoint-list";
-import { DarkModeContext } from "../../../../App";
+import { DarkModeContext } from "../../../main";
 import style from "./index.module.css";
 
 const sortTypeOptions = [

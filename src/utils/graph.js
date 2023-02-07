@@ -152,7 +152,7 @@ export function getHullCircle(points) {
   }
 }
 
-const NODE_MIN_DISTANCE = 10; // 节点之间的安全距离
+const NODE_MIN_DISTANCE = 6; // 节点之间的安全距离
 const ROOT_PLAIN_DISTANCE = ROOT_NODE_DEFAULT_SIZE + DEFAULT_EDGE_LENGTH + PLAIN_NODE_DEFAULT_SIZE; // 根节点和其子节点的最小距离
 const PLAIN_DISTANCE = PLAIN_NODE_DEFAULT_SIZE * 2 + DEFAULT_EDGE_LENGTH; // 普通子节点与其子节点的最小距离
 const SIBLING_MIN_DISTANCE_HALF = PLAIN_NODE_DEFAULT_SIZE + NODE_MIN_DISTANCE / 2 + 2; // 两个兄弟节点之间的最小距离的一半,另外添加一个常数,免受斥力影响
@@ -384,7 +384,7 @@ export function reArrangeTree(tree) {
         .distance(l => l.linkLength))
       .force("charge", forceManyBody()
         .strength(node => {
-          return -(300 * (.35 ** (node.depth + 1)));
+          return -(125 * (.6 ** (node.depth + 1)));
         }))
       .force("collide", forceCollide(d => d.r + NODE_MIN_DISTANCE));
   });
