@@ -222,11 +222,9 @@ export default observer(function NodeMenu({
           items: [
             ...baseDropdownItems,
             node?.backgroundImageURL && removeBackgroundItem,
-            node?.finished
-              ? markAsUnfinishedItem
-              : markAsFinishedItem,
+            node?.finished ? markAsUnfinishedItem : markAsFinishedItem,
             node?.parent && removeNodeItem,
-            node?.childrenWrapped ? expandChildrenItem : wrapChildrenItem
+            !!node?.children.length && (node?.childrenWrapped ? expandChildrenItem : wrapChildrenItem)
           ],
           onClick: onClick
         }}

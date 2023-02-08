@@ -35,6 +35,7 @@ const WrapExtendIcon = observer(({tree, node}) => {
     <PlusSquareOutlined
       className="foreign-antd-icon"
       onClick={() => expandChildren(tree, node)}
+      style={{backgroundColor: "#fff"}}
     />
   </foreignObject>
 })
