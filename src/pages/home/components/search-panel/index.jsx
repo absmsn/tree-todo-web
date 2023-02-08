@@ -35,7 +35,7 @@ const NameSelector = observer(({ map }) => {
   const [searchResults, setSearchResults] = useState(initialSearchResults);
   const [dropdownOpen, setDropdownOpen] = useState(false);
 
-  const onInputChange = e => {
+  const onSearch = e => {
     const value = e.target.value;
     setSearchText(value);
     const fuse = new Fuse(map.tree.nodes, fuseBuildOptions);
@@ -48,6 +48,19 @@ const NameSelector = observer(({ map }) => {
     setSearchResults(options);
   }
 
+  const onInputFocus = () => {
+    if (searchText.length > 0) {
+      onSearch();
+    }
+  }
+
+  const onInputBlur = () => {
+    if (searchResults.length > 0) {
+      setSearchResults([]);
+    }
+    setDropdownOpen(false);
+  }
+
   return (
     <Dropdown
       open={dropdownOpen}
@@ -58,9 +71,9 @@ const NameSelector = observer(({ map }) => {
     >
       <Input
         value={searchText}
-        onChange={onInputChange}
-        onBlur={() => setDropdownOpen(false)}
-        onFocus={() => searchResults.length > 0 && setDropdownOpen(true)}
+        onChange={onSearch}
+        onBlur={onInputBlur}
+        onFocus={onInputFocus}
         allowClear={true}
         style={{ width: 150 }}
       />
