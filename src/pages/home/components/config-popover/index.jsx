@@ -176,8 +176,8 @@ export default observer(({ x, y, node, show, setShow }) => {
 
   useEffect(() => {
     setTimeRange([
-      dayjs(node.startTime),
-      dayjs(node.endTime)
+      node.startTime ? dayjs(node.startTime) : null,
+      node.endTime ? dayjs(node.endTime) : null
     ]);
   }, [node.startTime, node.endTime]);
 
