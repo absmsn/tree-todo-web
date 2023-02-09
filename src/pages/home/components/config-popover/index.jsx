@@ -157,7 +157,7 @@ export default observer(({ x, y, node, show, setShow }) => {
       storeMutation.priority = priority;
       mutation.priority = priority;
     }
-    if (repeat && repeat !== node.repeat) {
+    if (repeat !== node.repeat) {
       node.repeat = repeat;
       mutation.repeat = repeat;
     }
@@ -176,8 +176,8 @@ export default observer(({ x, y, node, show, setShow }) => {
 
   useEffect(() => {
     setTimeRange([
-      node.startTime,
-      node.endTime
+      dayjs(node.startTime),
+      dayjs(node.endTime)
     ]);
   }, [node.startTime, node.endTime]);
 
