@@ -46,6 +46,10 @@ const AddPath = observer(({map, tree, svgRef}) => {
               if (isParentOfAnother(target, node) || isParentOfAnother(node, target)) {
                 return;
               }
+              // 不允许双向连接,即已有a->b,想要添加b->a的情况
+              if (target.conditions.find(p => p.target === node)) {
+                return;
+              }
               await nodeAPI.addCondition(node.id, target.id, "");
               node.addCondition(target);
               setIsAddPreShow(false);

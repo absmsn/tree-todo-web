@@ -4,8 +4,8 @@ import { observer } from "mobx-react";
 import { useMemo, useState } from "react";
 import { getQuaraticBezierControlPoint } from "../../../../utils/graph";
 import conditionAPI from "../../../../apis/condition";
+import { atan } from "../../../../utils/math";
 import style from "./index.module.css";
-import { atan, pointDistance } from "../../../../utils/math";
 
 const arrowLength = 10;
 const arrowAngle = Math.PI / 6; // 箭头和所指方向的夹角
