@@ -5,6 +5,7 @@ import { Dropdown, Input, Select } from "antd";
 import { useThrottle } from "../../../../hooks";
 import Fuse from "fuse.js";
 import style from "./index.module.css";
+import "./index.css";
 
 const searchTypeOptions = [
   { value: "name", label: "名称" },
@@ -169,8 +170,8 @@ export default observer(({ map }) => {
   const [searchType, setSearchType] = useState("name");
 
   return (
-    <Input.Group compact className={style.mainContainer}>
-      <Select className={style.typeSelect}
+    <Input.Group compact className={`${style.mainContainer} search-panel`}>
+      <Select className={`${style.typeSelect} type-select`}
         value={searchType}
         options={searchTypeOptions}
         onChange={setSearchType}

@@ -91,6 +91,7 @@ export default observer(({ map, tree }) => {
                 map={map}
                 type={sortType}
                 descend={timeOrder === "descend"}
+                filterFinished={finishedType}
               />
         }
       </div>

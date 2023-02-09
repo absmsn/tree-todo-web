@@ -32,4 +32,6 @@
   flex: 1 1 auto;
   width: 100%;
   resize: none;
+  color: var(--text-color);
+  background-color: var(--bgColor);
 }

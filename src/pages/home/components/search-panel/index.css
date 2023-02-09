@@ -1,0 +1,11 @@
+.search-panel .ant-input {
+  height: 26px;
+}
+
+.search-panel .ant-select-selector {
+  height: 36px !important;
+}
+
+.type-select .ant-select-selector .ant-select-selection-item{
+  line-height: 34px;
+}
