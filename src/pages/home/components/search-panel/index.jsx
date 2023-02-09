@@ -2,6 +2,7 @@ import { useState } from "react";
 import { computed } from "mobx";
 import { observer } from "mobx-react";
 import { Dropdown, Input, Select } from "antd";
+import { useThrottle } from "../../../../hooks";
 import Fuse from "fuse.js";
 import style from "./index.module.css";
 
@@ -19,13 +20,13 @@ const fuseSearchOptions = { limit: 10 };
 
 const onDropItemClick = (key, map, setDropdownOpen) => {
   key = Number(key);
-  setDropdownOpen(false);
   const node = map.tree.nodes.find(n => n.id === key);
   map.coordination.setViewBox({
     left: node.x - map.coordination.viewBox.width / 2,
     top: node.y - map.coordination.viewBox.height / 2
   });
   map.tree.setSelectedNode(node);
+  setDropdownOpen(false);
 }
 
 const initialSearchResults = [];
@@ -35,22 +36,27 @@ const NameSelector = observer(({ map }) => {
   const [searchResults, setSearchResults] = useState(initialSearchResults);
   const [dropdownOpen, setDropdownOpen] = useState(false);
 
-  const onSearch = e => {
-    const value = e.target.value;
-    setSearchText(value);
+  const search = text => {
     const fuse = new Fuse(map.tree.nodes, fuseBuildOptions);
-    const results = fuse.search(value, fuseSearchOptions);
+    const results = fuse.search(text, fuseSearchOptions);
     const options = results.map(result => ({
       key: result.item.id,
       label: result.item.title,
     }));
     setDropdownOpen(options.length > 0);
     setSearchResults(options);
-  }
+  };
+
+  const searchThrottle = useThrottle(search, 350);
+
+  const onSearch = text => {
+    setSearchText(text);
+    searchThrottle(text);
+  };
 
   const onInputFocus = () => {
     if (searchText.length > 0) {
-      onSearch();
+      search(searchText);
     }
   }
 
@@ -71,7 +77,7 @@ const NameSelector = observer(({ map }) => {
     >
       <Input
         value={searchText}
-        onChange={onSearch}
+        onChange={e => onSearch(e.target.value)}
         onBlur={onInputBlur}
         onFocus={onInputFocus}
         allowClear={true}

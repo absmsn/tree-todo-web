@@ -8,10 +8,13 @@ import {
   DatePicker,
   Space,
   Select,
-  Tooltip
+  Tooltip,
+  Checkbox,
+  InputNumber
 } from "antd";
-import { QuestionCircleOutlined } from "@ant-design/icons";
 import dayjs from "dayjs";
+import { QuestionCircleOutlined } from "@ant-design/icons";
+import { getRepeatPattern } from "../../../../utils/node";
 import nodeAPI from "../../../../apis/node";
 import style from "./index.module.css";
 
@@ -25,55 +28,35 @@ const priorityOptions = [
   { value: 0, label: "无优先级" }
 ];
 
-const repeatMonthOptions = [], repeatDayOptions = [], repeatHourOptions = [], repeatMinuteOptions = [];
-for (let i = 0; i <= 11; i++) {
-  repeatMonthOptions.push({
-    value: i,
-    label: `${i}月`
-  });
-}
-for (let i = 0; i <= 29; i++) {
-  repeatDayOptions.push({
-    value: i,
-    label: `${i}天`
-  });
-}
-for (let i = 0; i <= 23; i++) {
-  repeatHourOptions.push({
-    value: i,
-    label: `${i}小时`
-  });
-}
-for (let i = 0; i <= 59; i++) {
-  repeatMinuteOptions.push({
-    value: i,
-    label: `${i}分钟`
-  });
-}
-const optionStyle = {
-  width: 140
+const initialRepeatPattern = {
+  month: null,
+  day: null,
+  hour: null,
+  minute: null
 };
-
-const timeComponentsNum = 4;
 
 const RepeatTime = observer(({ node, startTime, endTime, onRepeatChange }) => {
   // repeat的格式: xxMxxDxxHxxm
   const repeatComponents = useMemo(() => {
-    let components = Array(timeComponentsNum).fill(0);
     if (node.repeat) {
-      components = node.repeat.split(/[a-zA-Z]/).map(s => Number(s));
-      components.pop();
+      return getRepeatPattern(node.repeat)
+    } else {
+      return initialRepeatPattern;
     }
-    return components;
   }, [node.repeat]);
-  const [repeatMonth, setRepeatMonth] = useState(repeatComponents[0]);
-  const [repeatDay, setRepeatDay] = useState(repeatComponents[1]);
-  const [repeatHour, setRepeatHour] = useState(repeatComponents[2]);
-  const [repeatMinute, setRepeatMinute] = useState(repeatComponents[3]);
+  const [repeatMonth, setRepeatMonth] = useState(repeatComponents.month);
+  const [repeatDay, setRepeatDay] = useState(repeatComponents.day);
+  const [repeatHour, setRepeatHour] = useState(repeatComponents.hour);
+  const [repeatMinute, setRepeatMinute] = useState(repeatComponents.minute);
   const disabled = useMemo(() => !startTime || !endTime, [startTime, endTime]);
 
   useEffect(() => {
-    const repeat = `${repeatMonth}M${repeatDay}D${repeatHour}H${repeatMinute}m`;
+    let repeat;
+    if (!repeatMonth || !repeatDay || !repeatHour || !repeatMinute) {
+      repeat = "";
+    } else {
+      repeat = `${repeatMonth}M${repeatDay}D${repeatHour}H${repeatMinute}m`;
+    }
     if (onRepeatChange) {
       onRepeatChange(repeat);
     }
@@ -95,40 +78,52 @@ const RepeatTime = observer(({ node, startTime, endTime, onRepeatChange }) => {
       </>
     }>
       <div className={style.repeatLine}>
-        <Select
+        <InputNumber
+          min={0}
+          max={12}
+          step={1}
           value={repeatMonth}
-          options={repeatMonthOptions}
+          disabled={disabled}
+          placeholder="重复月份"
           onChange={value => setRepeatMonth(value)}
-          disabled={disabled}
-          style={optionStyle}
-          placeholder="月"
+          className={style.inputNumber}
         />
-        <Select
+        <label>月</label>
+        <InputNumber
+          min={0}
+          max={31}
+          step={1}
           value={repeatDay}
-          options={repeatDayOptions}
-          onChange={value => setRepeatDay(value)}
           disabled={disabled}
-          style={optionStyle}
-          placeholder="天"
+          placeholder="重复天数"
+          onChange={value => setRepeatDay(value)}
+          className={style.inputNumber}
         />
+        <label>天</label>
       </div>
       <div className={style.repeatLine}>
-        <Select
+        <InputNumber
+          min={0}
+          max={60}
+          step={1}
           value={repeatHour}
-          options={repeatHourOptions}
+          disabled={disabled}
+          placeholder="重复小时数"
           onChange={value => setRepeatHour(value)}
-          disabled={disabled}
-          style={optionStyle}
-          placeholder="小时"
+          className={style.inputNumber}
         />
-        <Select
+        <label>时</label>
+        <InputNumber
+          min={1}
+          max={60}
+          step={1}
           value={repeatMinute}
-          options={repeatMinuteOptions}
-          onChange={value => setRepeatMinute(value)}
           disabled={disabled}
-          style={optionStyle}
-          placeholder="分钟"
+          placeholder="重复分钟数"
+          onChange={value => setRepeatMinute(value)}
+          className={style.inputNumber}
         />
+        <label>分</label>
       </div>
     </Form.Item>
   )
@@ -142,29 +137,35 @@ export default observer(({ x, y, node, show, setShow }) => {
     node.endTime ? dayjs(node.endTime) : null
   ]);
   const [priority, setPriority] = useState(node.priority);
+  const [deadlineAutoFinish, setDeadlineAutoFinish] = useState(node.autoFinish);
 
   const onSubmit = () => {
-    const [start, end] = timeRange, mutation = {};
+    const [start, end] = timeRange, mutation = {}, storeMutation = {};
     if (title !== node.title) {
-      node.setTitle(title);
+      storeMutation.title = title;
       mutation.title = title;
     }
     if (start && (!node.startTime || (node.startTime.getTime() !== start.toDate().getTime()))) {
-      node.setStartTime(start.toDate());
+      storeMutation.startTime = start.toDate();
       mutation.startTime = start.toDate();
     }
     if (end && (!node.endTime || (node.endTime.getTime() !== end.toDate().getTime()))) {
-      node.setEndTime(end.toDate());
+      storeMutation.endTime = end.toDate();
       mutation.endTime = end.toDate();
     }
     if (priority !== node.priority) {
-      node.setPriority(priority);
+      storeMutation.priority = priority;
       mutation.priority = priority;
     }
-    if (repeat !== node.repeat) {
-      node.setRepeat(repeat);
+    if (repeat && repeat !== node.repeat) {
+      node.repeat = repeat;
       mutation.repeat = repeat;
     }
+    if (deadlineAutoFinish !== node.autoFinish) {
+      node.autoFinish = deadlineAutoFinish;
+      mutation.autoFinish = deadlineAutoFinish;
+    }
+    node.fromPartial(storeMutation);
     nodeAPI.edit(node.id, mutation);
     setShow(false);
   }
@@ -172,6 +173,13 @@ export default observer(({ x, y, node, show, setShow }) => {
   const onDateRangeChange = ([start, end]) => {
     setTimeRange([start, end]);
   }
+
+  useEffect(() => {
+    setTimeRange([
+      node.startTime,
+      node.endTime
+    ]);
+  }, [node.startTime, node.endTime]);
 
   return (
     <Popover
@@ -196,6 +204,15 @@ export default observer(({ x, y, node, show, setShow }) => {
               format="YYYY-MM-DD HH:mm"
               onChange={onDateRangeChange}
             />
+            
+          </Form.Item>
+          <Form.Item label=" " className={style.autoFinishFormItem}>
+            <Checkbox
+              checked={deadlineAutoFinish}
+              onChange={e => setDeadlineAutoFinish(e.target.checked)}
+            >
+              到期时自动设置为完成
+            </Checkbox>
           </Form.Item>
           <Form.Item label="优先级">
             <Select

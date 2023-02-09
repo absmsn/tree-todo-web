@@ -10,19 +10,76 @@ import { TodayContext } from "../../../main";
 import { MILLSECONDS_PER_DAY } from "../../../../constants/number";
 import { DEFAULT_THIN_STROKE_WIDTH } from "../../../../constants/geometry";
 import { toHourMinute, timer } from "../../../../utils/time";
-import { expandChildren, markAsFinished } from "../../../../utils/node";
+import { 
+  expandChildren,
+  getRepeatPattern,
+  markAsFinished,
+  markAsUnfinished
+} from "../../../../utils/node";
 import { reArrangeTree } from "../../../../utils/graph";
 import nodeAPI from "../../../../apis/node";
-import dayjs from "dayjs";
 import { Howl } from "howler";
 import style from "./index.module.css";
 
 const initialPos = { x: 0, y: 0 };
 
+// 在执行重复任务任务时,根据当前时间获取下一个周期的起始时间和终止时间
+const getNextLoop = (startTime, endTime, repeat) => {
+  let {month, day, hour, minute} = getRepeatPattern(repeat);
+  if (!month && !day && !hour && !minute) {
+    throw Error();
+  }
+  const start = new Date(startTime), now = Date.now(), duration = endTime.getTime() - startTime.getTime();
+  if (now <= endTime.getTime()) {
+    start.setMonth(start.getMonth() + month);
+    start.setDate(start.getDate() + day);
+    start.setHours(start.getHours() + hour, start.getMinutes() + minute);
+  } else { // 已经超时,需要找到当前所在的周期内
+    while (start.getTime() < now) {
+      if (month > 0) {
+        start.setMonth(start.getMonth() + month);
+      }
+      if (day > 0) {
+        start.setDate(start.getDate() + day);
+      }
+      if (hour > 0) {
+        start.setHours(start.getHours() + hour);
+      }
+      if (minute > 0) {
+        start.setMinutes(start.getMinutes() + minute);
+      }
+    }
+  }
+  return [
+    start,
+    new Date(start.getTime() + duration)
+  ];
+}
+
 const stopPropagation = e => {
   e.stopPropagation();
   return false;
 };
+
+const BackgroundImage = observer(({node}) => {
+  return (
+    <>
+      <defs>
+        <clipPath id={`bg-${node.id}`}>
+          <circle cx={node.x} cy={node.y} r={node.r} />
+        </clipPath>
+      </defs>
+      <image
+        href={node.backgroundImageURL}
+        x={node.x - node.r}
+        y={node.y - node.r}
+        height={node.r * 2}
+        width={node.r * 2}
+        clipPath={`url(#bg-${node.id})`}
+      />
+    </>
+  )
+});
 
 // 折叠和展开子节点的按钮
 const WrapExtendIcon = observer(({tree, node}) => {
@@ -35,10 +92,10 @@ const WrapExtendIcon = observer(({tree, node}) => {
     <PlusSquareOutlined
       className="foreign-antd-icon"
       onClick={() => expandChildren(tree, node)}
-      style={{backgroundColor: "#fff"}}
+      style={{backgroundColor: "var(--bgColor)"}}
     />
   </foreignObject>
-})
+});
 
 const TitleInput = observer(({ node, isTitleInputShow, setIsTitleInputShow }) => {
   const inputRef = useRef(null);
@@ -117,7 +174,7 @@ export default observer(({ node, tree, coordination, dark }) => {
   const [isMouseDown, setIsMouseDown] = useState(false);
   const [isMouseMoving, setIsMouseMoving] = useState(false);
   const [isTitleInputShow, setIsTitleInputShow] = useState(false);
-  const { notification } = AntdAppConfig.useApp();
+  const { notification, message } = AntdAppConfig.useApp();
 
   // 高亮显示当天要完成的任务
   useEffect(() => {
@@ -155,6 +212,52 @@ export default observer(({ node, tree, coordination, dark }) => {
       });
     }
   }, [node.endTime, node.finished, today]);
+
+  // 到期后自动设置为完成
+  useEffect(() => {
+    if (node.autoFinish && node.endTime) {
+      const duration = node.endTime.getTime() - Date.now();
+      if (duration >= 0) {
+        const timerId = timer.setTimeout(async () => {
+          await markAsFinished(node);
+          message.success(<span>任务{node.title}已自动设置为完成!</span>);
+        }, duration);
+        return (() => {
+          timer.clearTimeout(timerId);
+        });
+      }
+    }
+  }, [node.autoFinish, node.endTime]);
+
+  useEffect(() => {
+    if (node.startTime, node.endTime && node.autoFinish && node.repeat) {
+      let setRangeTimerId, setFinishTimerId;
+      const tick = () => {
+        const [nextStart, nextEnd] = getNextLoop(node.startTime, node.endTime, node.repeat);
+        // 达到结束时间则自动向后延期
+        // 还有多长时间结束,如果已经结束则立即执行
+        const deadlineDuration = Math.max(nextStart.getTime() - Date.now(), 0);
+        setRangeTimerId = timer.setTimeout(() => {
+          node.setStartTime(nextStart);
+          node.setEndTime(nextEnd);
+          const duration = Math.max(nextStart.getTime() - Date.now(), 0);
+          setFinishTimerId = timer.setTimeout(() => {
+            // 在新一轮开始时,如果已经完成,则要设置为未完成
+            if (node.finished) {
+              markAsUnfinished(node);
+            }
+          }, duration);
+          message.success(<span>任务{node.title}已开始下一次循环!</span>);
+          tick();
+        }, deadlineDuration);
+      }
+      tick();
+      return (() => {
+        setRangeTimerId && timer.clearTimeout(setRangeTimerId);
+        setFinishTimerId && timer.clearTimeout(setFinishTimerId);
+      });
+    }
+  }, [node.startTime, node.endTime, node.autoFinish, node.repeat]);
 
   const onMouseDown = e => {
     if (e.button === 0) {
@@ -256,21 +359,7 @@ export default observer(({ node, tree, coordination, dark }) => {
         className={`${nearDeadline && style.nearDeadline} ${isMouseDown && "cursor-grabbing"}`}
       >
         {
-          node.backgroundImageURL && <>
-            <defs>
-              <clipPath id={`bg-${node.id}`}>
-                <circle cx={node.x} cy={node.y} r={node.r} />
-              </clipPath>
-            </defs>
-            <image
-              href={node.backgroundImageURL}
-              x={node.x - node.r}
-              y={node.y - node.r}
-              height={node.r * 2}
-              width={node.r * 2}
-              clipPath={`url(#bg-${node.id})`}
-            />
-          </>
+          node.backgroundImageURL && <BackgroundImage node={node} />
         }
         {
           node.comment

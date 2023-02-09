@@ -50,6 +50,8 @@ export default class NodeStore {
 
   priority = 0;
 
+  autoFinish = false;
+
   x = 0;
 
   y = 0;
@@ -147,6 +149,10 @@ export default class NodeStore {
 
   setBackgroundImageURL(url) {
     this.backgroundImageURL = url;
+  }
+
+  setAutoFinish(auto) {
+    this.autoFinish = auto;
   }
 
   addChild(child) {

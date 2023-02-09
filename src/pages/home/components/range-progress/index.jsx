@@ -15,9 +15,27 @@ export default observer(function RangeProgress({ node }) {
 
   useEffect(() => {
     if (node.startTime && node.endTime) {
+      let duration = node.endTime.getTime() - Date.now(), timerId;
       const unit = Math.floor((node.endTime.getTime() - node.startTime.getTime()) / 100);
-      const timer = setInterval(() => setNow(Date.now()), unit);
-      return () => clearInterval(timer);
+      if (duration > unit) {
+        timerId = setInterval(() => {
+          setNow(Date.now());
+          if (Date.now() - node.endTime.getTime() > 0) {
+            clearInterval(timerId);
+          }
+        }, unit);
+      } else if (duration > 0) { // 如果还不到百分之一的时间就要结束了
+        timerId = setTimeout(() => setNow(Date.now(), duration));
+      } else {
+        setNow(Date.now());
+      }
+      return () => {
+        if (duration > unit) {
+          clearInterval(timerId);
+        } else if (duration > 0) {
+          clearTimeout(timerId);
+        }
+      };
     }
   }, [node.startTime, node.endTime]);
 

@@ -1,7 +1,7 @@
 import nodeAPI from "../apis/node";
 import { reArrangeTree } from "./graph";
 
-export const markAsFinished = node => {
+export const markAsFinished = async node => {
   const stack = [node], ids= [], mutations = [], mutation = {finished: true};
   while (stack.length) {
     let n = stack.pop();
@@ -29,11 +29,11 @@ export const markAsFinished = node => {
     n = n.parent;
   }
   if (ids.length > 0) {
-    nodeAPI.editBatch(ids, mutations);
+    await nodeAPI.editBatch(ids, mutations);
   }
 }
 
-export const markAsUnfinished = node => {
+export const markAsUnfinished = async node => {
   const stack = [node], ids= [], mutations = [], mutation = {finished: false};
   while (stack.length) {
     let n = stack.pop();
@@ -59,7 +59,7 @@ export const markAsUnfinished = node => {
     n = n.parent;
   }
   if (ids.length > 0) {
-    nodeAPI.editBatch(ids, mutations);
+    await nodeAPI.editBatch(ids, mutations);
   }
 }
 
@@ -102,4 +102,14 @@ export function isWrapped(node) {
   } else {
     return node.parent.childrenWrapped;
   }
+}
+
+export function getRepeatPattern(repeatStr) {
+  let [month, day, hour, minute] = repeatStr.split(/[a-zA-Z]/);
+  return {
+    month: Number(month),
+    day: Number(day),
+    hour: Number(hour),
+    minute: Number(minute)
+  };
 }

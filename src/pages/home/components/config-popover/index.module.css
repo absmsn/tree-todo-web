@@ -9,8 +9,25 @@
   margin-bottom: 0;
 }
 
+.repeatLine > label {
+  margin: 0 12px 0 6px;
+}
+
+.repeatLine > label:last-child {
+  margin-right: 0;
+}
+
+.repeatLine .inputNumber {
+  width: 160px;
+}
+
 .repeatQuestionMark {
   font-size: 10px !important;
   color: var(--dimmed-color);
   margin-right: 4px;
+}
+
+.autoFinishFormItem {
+  margin-top: -22px;
+  margin-bottom: 12px;
 }
