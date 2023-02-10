@@ -50,9 +50,9 @@ const RepeatTime = observer(({ node, startTime, endTime, onRepeatChange }) => {
   const [repeatMinute, setRepeatMinute] = useState(repeatComponents.minute);
   const disabled = useMemo(() => !startTime || !endTime, [startTime, endTime]);
 
-  useEffect(() => {
+  const repeatChange = () => {
     let repeat;
-    if (!repeatMonth || !repeatDay || !repeatHour || !repeatMinute) {
+    if (!repeatMonth && !repeatDay && !repeatHour && !repeatMinute) {
       repeat = "";
     } else {
       repeat = `${repeatMonth}M${repeatDay}D${repeatHour}H${repeatMinute}m`;
@@ -60,72 +60,107 @@ const RepeatTime = observer(({ node, startTime, endTime, onRepeatChange }) => {
     if (onRepeatChange) {
       onRepeatChange(repeat);
     }
-  }, [repeatMonth, repeatDay, repeatHour, repeatMinute]);
+  }
+
+  console.log("oo")
+
+  const clearRepeat = () => {
+    setRepeatMonth(null);
+    setRepeatDay(null);
+    setRepeatHour(null);
+    setRepeatMinute(null);
+    if (node.repeat && onRepeatChange) {
+      onRepeatChange("");
+    }
+  }
 
   return (
-    <Form.Item label={
-      <>
-        {
-          disabled && <Tooltip
-            title="需要先设置时间区间"
-            placement="left"
-            overlayClassName={"tooltip-style"}
-          >
-            <QuestionCircleOutlined className={style.repeatQuestionMark} />
-          </Tooltip>
-        }
-        重复
-      </>
-    }>
-      <div className={style.repeatLine}>
-        <InputNumber
-          min={0}
-          max={12}
-          step={1}
-          value={repeatMonth}
-          disabled={disabled}
-          placeholder="重复月份"
-          onChange={value => setRepeatMonth(value)}
-          className={style.inputNumber}
-        />
-        <label>月</label>
-        <InputNumber
-          min={0}
-          max={31}
-          step={1}
-          value={repeatDay}
-          disabled={disabled}
-          placeholder="重复天数"
-          onChange={value => setRepeatDay(value)}
-          className={style.inputNumber}
-        />
-        <label>天</label>
-      </div>
-      <div className={style.repeatLine}>
-        <InputNumber
-          min={0}
-          max={60}
-          step={1}
-          value={repeatHour}
-          disabled={disabled}
-          placeholder="重复小时数"
-          onChange={value => setRepeatHour(value)}
-          className={style.inputNumber}
-        />
-        <label>时</label>
-        <InputNumber
-          min={1}
-          max={60}
-          step={1}
-          value={repeatMinute}
-          disabled={disabled}
-          placeholder="重复分钟数"
-          onChange={value => setRepeatMinute(value)}
-          className={style.inputNumber}
-        />
-        <label>分</label>
-      </div>
-    </Form.Item>
+    <>
+      <Form.Item label={
+        <>
+          {
+            disabled && <Tooltip
+              title="需要先设置时间区间"
+              placement="left"
+              overlayClassName={"tooltip-style"}
+            >
+              <QuestionCircleOutlined className={style.repeatQuestionMark} />
+            </Tooltip>
+          }
+          重复
+        </>
+      }>
+        <div className={style.repeatLine}>
+          <InputNumber
+            min={0}
+            max={12}
+            step={1}
+            value={repeatMonth}
+            disabled={disabled}
+            placeholder="重复月份"
+            onChange={value => {
+              setRepeatMonth(value);
+              repeatChange();
+            }}
+            className={style.inputNumber}
+          />
+          <label>月</label>
+          <InputNumber
+            min={0}
+            max={31}
+            step={1}
+            value={repeatDay}
+            disabled={disabled}
+            placeholder="重复天数"
+            onChange={value => {
+              setRepeatDay(value);
+              repeatChange();
+            }}
+            className={style.inputNumber}
+          />
+          <label>天</label>
+        </div>
+        <div className={style.repeatLine}>
+          <InputNumber
+            min={0}
+            max={60}
+            step={1}
+            value={repeatHour}
+            disabled={disabled}
+            placeholder="重复小时数"
+            onChange={value => {
+              setRepeatHour(value);
+              repeatChange();
+            }}
+            className={style.inputNumber}
+          />
+          <label>时</label>
+          <InputNumber
+            min={1}
+            max={60}
+            step={1}
+            value={repeatMinute}
+            disabled={disabled}
+            placeholder="重复分钟数"
+            onChange={value => {
+              setRepeatMinute(value);
+              repeatChange();
+            }}
+            className={style.inputNumber}
+          />
+          <label>分</label>
+        </div>
+      </Form.Item>
+      <Form.Item label=" " className={style.clearRepeatFormItem}>
+        <Button 
+          type="primary"
+          size="small"
+          onClick={clearRepeat}
+        >
+          清除
+        </Button>
+      </Form.Item>
+    </>
   )
 });
 
@@ -148,10 +183,16 @@ export default observer(({ x, y, node, show, setShow }) => {
     if (start && (!node.startTime || (node.startTime.getTime() !== start.toDate().getTime()))) {
       storeMutation.startTime = start.toDate();
       mutation.startTime = start.toDate();
+    } else if (!start) {
+      storeMutation.startTime = null;
+      mutation.startTime = null;
     }
     if (end && (!node.endTime || (node.endTime.getTime() !== end.toDate().getTime()))) {
       storeMutation.endTime = end.toDate();
       mutation.endTime = end.toDate();
+    } else if (!end) {
+      storeMutation.endTime = null;
+      mutation.endTime = null;
     }
     if (priority !== node.priority) {
       storeMutation.priority = priority;
@@ -170,7 +211,8 @@ export default observer(({ x, y, node, show, setShow }) => {
     setShow(false);
   }
 
-  const onDateRangeChange = ([start, end]) => {
+  const onDateRangeChange = (range) => {
+    const start = range?.[0], end = range?.[1];
     setTimeRange([start, end]);
   }
 
@@ -225,7 +267,7 @@ export default observer(({ x, y, node, show, setShow }) => {
             node={node}
             startTime={timeRange[0]}
             endTime={timeRange[1]}
-            onRepeatChange={(value) => setRepeat(value)}
+            onRepeatChange={setRepeat}
           />
           <Form.Item label=" ">
             <Space>

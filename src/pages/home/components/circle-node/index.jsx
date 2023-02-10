@@ -10,7 +10,7 @@ import { TodayContext } from "../../../main";
 import { MILLSECONDS_PER_DAY } from "../../../../constants/number";
 import { DEFAULT_THIN_STROKE_WIDTH } from "../../../../constants/geometry";
 import { toHourMinute, timer } from "../../../../utils/time";
-import { 
+import {
   expandChildren,
   getRepeatPattern,
   markAsFinished,
@@ -20,39 +20,44 @@ import { reArrangeTree } from "../../../../utils/graph";
 import nodeAPI from "../../../../apis/node";
 import { Howl } from "howler";
 import style from "./index.module.css";
+import { isNumber } from "lodash";
 
 const initialPos = { x: 0, y: 0 };
 
 // 在执行重复任务任务时,根据当前时间获取下一个周期的起始时间和终止时间
 const getNextLoop = (startTime, endTime, repeat) => {
-  let {month, day, hour, minute} = getRepeatPattern(repeat);
+  let { month, day, hour, minute } = getRepeatPattern(repeat);
   if (!month && !day && !hour && !minute) {
     throw Error();
   }
-  const start = new Date(startTime), now = Date.now(), duration = endTime.getTime() - startTime.getTime();
-  if (now <= endTime.getTime()) {
-    start.setMonth(start.getMonth() + month);
-    start.setDate(start.getDate() + day);
-    start.setHours(start.getHours() + hour, start.getMinutes() + minute);
-  } else { // 已经超时,需要找到当前所在的周期内
-    while (start.getTime() < now) {
-      if (month > 0) {
-        start.setMonth(start.getMonth() + month);
-      }
-      if (day > 0) {
-        start.setDate(start.getDate() + day);
-      }
-      if (hour > 0) {
-        start.setHours(start.getHours() + hour);
-      }
-      if (minute > 0) {
-        start.setMinutes(start.getMinutes() + minute);
-      }
+  const nowStart = new Date(startTime), now = Date.now(), duration = endTime.getTime() - startTime.getTime();
+  nowStart.setMonth(nowStart.getMonth() + month);
+  nowStart.setDate(nowStart.getDate() + day);
+  nowStart.setHours(nowStart.getHours() + hour, nowStart.getMinutes() + minute);
+  while (now > nowStart.getTime()) {
+    // 已经超时,需要找到当前所在的周期内
+    if (month > 0) {
+      nowStart.setMonth(nowStart.getMonth() + month);
+    }
+    if (day > 0) {
+      nowStart.setDate(nowStart.getDate() + day);
+    }
+    if (hour > 0) {
+      nowStart.setHours(nowStart.getHours() + hour);
+    }
+    if (minute > 0) {
+      nowStart.setMinutes(nowStart.getMinutes() + minute);
     }
   }
+  const nextStart = new Date(nowStart.getTime());
+  nextStart.setMonth(nextStart.getMonth() + month);
+  nextStart.setDate(nextStart.getDate() + day);
+  nextStart.setHours(nextStart.getHours() + hour, nextStart.getMinutes() + minute);
   return [
-    start,
-    new Date(start.getTime() + duration)
+    nowStart,
+    new Date(nowStart.getTime() + duration),
+    nextStart,
+    new Date(nextStart.getTime() + duration)
   ];
 }
 
@@ -61,7 +66,7 @@ const stopPropagation = e => {
   return false;
 };
 
-const BackgroundImage = observer(({node}) => {
+const BackgroundImage = observer(({ node }) => {
   return (
     <>
       <defs>
@@ -82,7 +87,7 @@ const BackgroundImage = observer(({node}) => {
 });
 
 // 折叠和展开子节点的按钮
-const WrapExtendIcon = observer(({tree, node}) => {
+const WrapExtendIcon = observer(({ tree, node }) => {
   return <foreignObject
     x={node.x - node.r - 8}
     y={node.y - node.r - 8}
@@ -92,7 +97,7 @@ const WrapExtendIcon = observer(({tree, node}) => {
     <PlusSquareOutlined
       className="foreign-antd-icon"
       onClick={() => expandChildren(tree, node)}
-      style={{backgroundColor: "var(--bgColor)"}}
+      style={{ backgroundColor: "var(--bgColor)" }}
     />
   </foreignObject>
 });
@@ -175,6 +180,7 @@ export default observer(({ node, tree, coordination, dark }) => {
   const [isMouseMoving, setIsMouseMoving] = useState(false);
   const [isTitleInputShow, setIsTitleInputShow] = useState(false);
   const { notification, message } = AntdAppConfig.useApp();
+  const loopRangeRef = useRef({});
 
   // 高亮显示当天要完成的任务
   useEffect(() => {
@@ -230,32 +236,52 @@ export default observer(({ node, tree, coordination, dark }) => {
   }, [node.autoFinish, node.endTime]);
 
   useEffect(() => {
-    if (node.startTime, node.endTime && node.autoFinish && node.repeat) {
-      let setRangeTimerId, setFinishTimerId;
-      const tick = () => {
-        const [nextStart, nextEnd] = getNextLoop(node.startTime, node.endTime, node.repeat);
-        // 达到结束时间则自动向后延期
-        // 还有多长时间结束,如果已经结束则立即执行
-        const deadlineDuration = Math.max(nextStart.getTime() - Date.now(), 0);
-        setRangeTimerId = timer.setTimeout(() => {
-          node.setStartTime(nextStart);
-          node.setEndTime(nextEnd);
-          const duration = Math.max(nextStart.getTime() - Date.now(), 0);
-          setFinishTimerId = timer.setTimeout(() => {
-            // 在新一轮开始时,如果已经完成,则要设置为未完成
-            if (node.finished) {
-              markAsUnfinished(node);
-            }
-          }, duration);
-          message.success(<span>任务{node.title}已开始下一次循环!</span>);
-          tick();
-        }, deadlineDuration);
+    // 是由外部的其它代码修改了startTime或endTime,以及重新设置了repeat或autoFinish,此时需要重新设置定时器
+    if (node.startTime !== loopRangeRef.current.startTime
+      || node.endTime !== loopRangeRef.current.endTime
+      || node.repeat !== loopRangeRef.current.repeat
+      || node.autoFinish !== loopRangeRef.current.autoFinish) {
+      // 首先取消上次设置的定时器
+      if (isNumber(loopRangeRef.current.setRangeTimerId)) {
+        timer.clearTimeout(loopRangeRef.current.setRangeTimerId);
       }
-      tick();
-      return (() => {
-        setRangeTimerId && timer.clearTimeout(setRangeTimerId);
-        setFinishTimerId && timer.clearTimeout(setFinishTimerId);
-      });
+      if (isNumber(loopRangeRef.current.setFinishTimerId)) {
+        timer.clearTimeout(loopRangeRef.current.setFinishTimerId);
+      }
+      if (node.startTime, node.endTime && node.repeat) {
+        loopRangeRef.current.repeat = node.repeat;
+        loopRangeRef.current.autoFinish = node.autoFinish;
+        const tick = () => {
+          const [nowStart, nowEnd, nextStart, nextEnd] = getNextLoop(node.startTime, node.endTime, node.repeat);
+          // 达到结束时间则自动向后延期
+          // 设置当前周期的起始时间
+          if (nowStart.getTime() !== node.startTime.getTime()) {
+            loopRangeRef.current.startTime = nowStart;
+            loopRangeRef.current.endTime = nowEnd;
+            node.setStartTime(nowStart);
+            node.setEndTime(nowEnd);
+          }
+          const deadlineDuration = Math.max(nextStart.getTime() - Date.now(), 0);
+          loopRangeRef.current.setRangeTimerId = timer.setTimeout(() => {
+            loopRangeRef.current.startTime = nextStart;
+            loopRangeRef.current.endTime = nextEnd;
+            node.setStartTime(nextStart);
+            node.setEndTime(nextEnd);
+            if (node.autoFinish) {
+              const duration = Math.max(nextStart.getTime() - Date.now(), 0);
+              loopRangeRef.current.setFinishTimerId = timer.setTimeout(() => {
+                // 在新一轮开始时,如果已经完成,则要设置为未完成
+                if (node.finished) {
+                  markAsUnfinished(node);
+                }
+              }, duration);
+            }
+            message.success(<span>任务{node.title}已开始下一次循环!</span>);
+            tick();
+          }, deadlineDuration);
+        }
+        tick();
+      }
     }
   }, [node.startTime, node.endTime, node.autoFinish, node.repeat]);
 
@@ -389,7 +415,7 @@ export default observer(({ node, tree, coordination, dark }) => {
       {
         node.childrenWrapped && <WrapExtendIcon
           tree={tree}
-          node={node} 
+          node={node}
         />
       }
       {

@@ -54,7 +54,8 @@ export default observer(function RangeProgress({ node }) {
     return progress;
   }, [node.startTime, node.endTime, node.finished, now]);
   const endPos = useMemo(() => {
-    const angle = (progress - 90) / 180 * Math.PI;
+    // 如果是0度,需要至少展示一点,所以设置为1度
+    const angle = ((!progress ? 1 : progress) - 90) / 180 * Math.PI;
     return {
       x: node.x + node.r * Math.cos(angle),
       y: node.y + node.r * Math.sin(angle)

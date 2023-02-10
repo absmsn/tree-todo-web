@@ -28,6 +28,11 @@
 }
 
 .autoFinishFormItem {
+  margin-top: -18px;
+  margin-bottom: 12px;
+}
+
+.clearRepeatFormItem {
   margin-top: -22px;
   margin-bottom: 12px;
 }
