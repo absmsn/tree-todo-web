@@ -11,9 +11,9 @@ export default observer(({node, tags}) => {
   const [width, setWidth] = useState(minSize); // 设置为0会使容器无宽度和高度
   const [height, setHeight] = useState(minSize);
 
-  const onRemoveTag = async (tag) => {
-    await nodeAPI.removeTag(node.id, tag.id);
-    node.removeTag(tag.id)
+  const onRemoveTag = tag => {
+    node.removeTag(tag.id);
+    nodeAPI.removeTag(node.id, tag.id);
   }
 
   useEffect(() => {

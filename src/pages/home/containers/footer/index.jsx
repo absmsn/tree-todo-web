@@ -84,12 +84,12 @@ const TasksInfo = observer(({tree}) => {
 const MapName = observer(({map}) => {
   const [name, setName] = useState(map.name);
   const [editShow, setEditShow] = useState(false);
-  const onFinished = async () => {
+  const onFinished = () => {
     if (name && name !== map.name) {
-      await mapAPI.edit(map.id, {
+      map.setName(name);
+      mapAPI.edit(map.id, {
         name: name
       });
-      map.setName(name);
     }
     setEditShow(false);
   }

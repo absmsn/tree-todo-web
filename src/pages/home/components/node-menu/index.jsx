@@ -141,24 +141,24 @@ export default observer(function NodeMenu({
     input.type = "file";
     input.accept = "image/*";
     input.click();
-    input.addEventListener("change", async (e) => {
+    input.addEventListener("change", e => {
       const file = e.target.files[0];
       if (file.size <= 10485760) {
-        await nodeAPI.setBackground(node.id, file);
         const fileReader = new FileReader();
         fileReader.readAsDataURL(file);
         fileReader.addEventListener("load", () => {
           node.setBackgroundImageURL(fileReader.result);
         });
+        nodeAPI.setBackground(node.id, file);
       } else {
         messageAPI.warning("文件大小不能超过10M!");
       }
     });
   }
 
-  const removeBackground = async () => {
-    await nodeAPI.removeBackground(node.id);
+  const removeBackground = () => {
     node.setBackgroundImageURL("");
+    nodeAPI.removeBackground(node.id);
   }
 
   const onEditNotes = () => {

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { computed } from "mobx";
+import { observer } from "mobx-react";
 import { PlusCircleOutlined } from "@ant-design/icons";
 import { Popover, Select, Form, Tag, Input, Button, Space } from "antd";
 import { getTagsMutations } from "../../../../utils";
@@ -9,7 +10,7 @@ import style from "./index.module.css";
 const labelCol = { span: 8 };
 const wrapperCol = { span: 20 };
 
-export default function({ x, y, map, node, show, setShow }) {
+export default observer(function({ x, y, map, node, show, setShow }) {
   const [tags, setTags] = useState([]);
   const [newTagName, setNewTagName] = useState("");
   const availableTags = computed(() => {
@@ -44,7 +45,7 @@ export default function({ x, y, map, node, show, setShow }) {
     setTags([...tags]);
   }
 
-  const onConfirm = async () => {
+  const onConfirm = () => {
     if (tags.length > 0) {
       const newTags = node.tags.concat(tags);
       const {add, remove} = getTagsMutations(node.tags, newTags);
@@ -55,8 +56,8 @@ export default function({ x, y, map, node, show, setShow }) {
       if (remove.length > 0) {
         promises.push(nodeAPI.removeTags(node.id, remove.map(item => item.id)));
       }
-      await Promise.all(promises);
       node.setTags(node.tags.concat(tags));
+      Promise.all(promises);
     }
     setShow(false);
   }
@@ -154,4 +155,4 @@ export default function({ x, y, map, node, show, setShow }) {
       </div>
     </Popover>
   )
-}
+});

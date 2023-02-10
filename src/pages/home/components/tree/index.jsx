@@ -37,7 +37,7 @@ const AddPath = observer(({map, tree, svgRef}) => {
           // 寻找两个节点的公共父节点计算量比较大，使用根节点来替代
           setControlPos(getQuaraticBezierControlPoint(start, end, tree.root));
         }
-        const mousedown = async e => {
+        const mousedown = e => {
           const point = map.coordination.clientToSvg(e.clientX, e.clientY);
           if (point) {
             const target = whichNodeIsPointIn(tree, point.x, point.y);
@@ -50,10 +50,10 @@ const AddPath = observer(({map, tree, svgRef}) => {
               if (target.conditions.find(p => p.target === node)) {
                 return;
               }
-              await nodeAPI.addCondition(node.id, target.id, "");
               node.addCondition(target);
               setIsAddPreShow(false);
               removeListeners();
+              nodeAPI.addCondition(node.id, target.id, "");
             }
           }
         }

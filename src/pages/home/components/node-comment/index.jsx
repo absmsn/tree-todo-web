@@ -14,10 +14,10 @@ export default function NodeComment({
   const textRef = useRef(null);
   const [comment, setComment] = useState(node.comment);
 
-  const saveComment = async () => {
-    await nodeAPI.edit(node.id, { comment });
+  const saveComment = () => {
     node.setComment(textRef.current.value);
     setIsCommentShow(false);
+    nodeAPI.edit(node.id, { comment });
   }
 
   return (

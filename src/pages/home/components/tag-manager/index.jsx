@@ -21,12 +21,12 @@ export default observer(function FloatPanel({map, show, children}) {
     }
   }
 
-  const onRemoveTag = async (tag) => {
-    await tagAPI.remove(tag.id);
+  const onRemoveTag = tag => {
     map.removeTag(tag.id);
     for (let node of map.tree.nodes) {
       node.removeTag(tag.id);
     }
+    tagAPI.remove(tag.id);
   }
 
   const handleEditTagConfirm = () => {

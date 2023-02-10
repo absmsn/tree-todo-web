@@ -60,11 +60,11 @@ export default observer(({ tree, condition, source, target }) => {
   const [text, setText] = useState(condition.text);
   const [isInputShow, setIsInputShow] = useState(false);
 
-  const onClickMenu = async ({ key }) => {
+  const onClickMenu = ({ key }) => {
     switch (key) {
       case "remove-link":
-        await conditionAPI.remove(source.id, target.id);
         source.removeCondition(target);
+        conditionAPI.remove(source.id, target.id);
         break;
       case "edit-text":
         setIsInputShow(true);
@@ -72,10 +72,10 @@ export default observer(({ tree, condition, source, target }) => {
     }
   }
 
-  const onFinished = async () => {
+  const onFinished = () => {
     if (text !== condition.text) {
-      await conditionAPI.edit(source.id, target.id, { text });
       condition.setText(text);
+      conditionAPI.edit(source.id, target.id, { text });
     }
     setIsInputShow(false);
   }
