@@ -62,8 +62,6 @@ const RepeatTime = observer(({ node, startTime, endTime, onRepeatChange }) => {
     }
   }
 
-  console.log("oo")
-
   const clearRepeat = () => {
     setRepeatMonth(null);
     setRepeatDay(null);
