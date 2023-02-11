@@ -198,42 +198,46 @@ export default observer(({ node, tree, coordination, dark }) => {
       setExpired(false);
       return setNearDeadline(false);
     }
-    // 设置了终止日期,终止日期在今天,并且任务还未过期
-    const deadlineMs = node.endTime?.getTime(), now = Date.now();
     if (node.endTime) {
-      if (((deadlineMs - today.getTime()) < MILLSECONDS_PER_DAY) && deadlineMs >= now) {
-        setNearDeadline(true);
-        const timer = setTimeout(() => {
-          setNearDeadline(false);
-          notification.info({
-            message: "任务过期",
-            description: <>
-              <div className="mb-2">任务{node.title}于{toHourMinute(node.endTime)}到期</div>
-              <Space size={12}>
-                <a onClick={() => tree.setSelectedNode(node)}>定位</a>
-                {
-                  !node.finished && <a
-                    onClick={() => !node.finished && markAsFinished(node)}>标记为已完成</a>
-                }
-              </Space>
-            </>,
-            duration: 30
+      // 设置了终止日期,终止日期在今天,并且任务还未过期
+      const deadlineMs = node.endTime?.getTime(), now = Date.now();
+      if (deadlineMs >= now) {
+        if (!node.startTime || node.startTime.getTime() <= now) {
+          setExpired(false);
+        }
+        if ((deadlineMs - today.getTime()) < MILLSECONDS_PER_DAY) {
+          setNearDeadline(true);
+          const timer = setTimeout(() => {
+            setNearDeadline(false);
+            notification.info({
+              message: "任务过期",
+              description: <>
+                <div className="mb-2">任务{node.title}于{toHourMinute(node.endTime)}到期</div>
+                <Space size={12}>
+                  <a onClick={() => tree.setSelectedNode(node)}>定位</a>
+                  {
+                    !node.finished && <a onClick={() => !node.finished && markAsFinished(node)}>标记为已完成</a>
+                  }
+                </Space>
+              </>,
+              duration: 30
+            });
+            const sound = new Howl({
+              src: ["/audios/expired.mp3"]
+            });
+            sound.play();
+            setExpired(true);
+          }, deadlineMs - now); // 到期的时候取消闪烁
+          return (() => {
+            clearTimeout(timer);
           });
-          const sound = new Howl({
-            src: ["/audios/expired.mp3"]
-          });
-          sound.play();
-          setExpired(true);
-        }, deadlineMs - now); // 到期的时候取消闪烁
-        return (() => {
-          clearTimeout(timer);
-        });
+        }
       } else if (deadlineMs < now) {
         // 已经过期
         setExpired(true);
       }
     }
-  }, [node.endTime, node.finished, today]);
+  }, [node.startTime, node.endTime, node.finished, today]);
 
   useEffect(() => {
     if (node.startTime && !node.finished) {

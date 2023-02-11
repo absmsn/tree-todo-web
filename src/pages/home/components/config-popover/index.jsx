@@ -196,9 +196,16 @@ export default observer(({ x, y, node, show, setShow }) => {
 
   const onDateRangeChange = (range) => {
     const start = range?.[0], end = range?.[1];
+    if (start) {
+      start.toDate().setSeconds(0);
+    }
+    if (end) {
+      end.toDate().setSeconds(0);
+    }
     setTimeRange([start, end]);
   }
 
+  // 当其它代码处修改了日期,同步到时间选择框中
   useEffect(() => {
     setTimeRange([
       node.startTime ? dayjs(node.startTime) : null,
