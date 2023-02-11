@@ -32,6 +32,8 @@ const onDropItemClick = (key, map, setDropdownOpen) => {
 
 const initialSearchResults = [];
 
+const searchItemIdPrefix = "search-";
+
 const NameSelector = observer(({ map }) => {
   const [searchText, setSearchText] = useState("");
   const [searchResults, setSearchResults] = useState(initialSearchResults);
@@ -42,7 +44,9 @@ const NameSelector = observer(({ map }) => {
     const results = fuse.search(text, fuseSearchOptions);
     const options = results.map(result => ({
       key: result.item.id,
-      label: result.item.title,
+      label: <div id={`${searchItemIdPrefix}${result.item.id}`}>
+        {result.item.title}
+      </div>,
     }));
     setDropdownOpen(options.length > 0);
     setSearchResults(options);
@@ -73,7 +77,14 @@ const NameSelector = observer(({ map }) => {
       open={dropdownOpen}
       menu={{
         items: searchResults,
-        onClick: ({ key }) => onDropItemClick(key, map, setDropdownOpen)
+        // onClick不起作用,使用onMouseDown替代
+        onMouseDown: e => {
+          const id = e.target.id;
+          if (id) {
+            const key = id.replace(searchItemIdPrefix, "");
+            onDropItemClick(key, map, setDropdownOpen);
+          }
+        }
       }}
     >
       <Input
