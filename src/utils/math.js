@@ -19,3 +19,14 @@ export function atan(offsetY, offsetX) {
   }
   return theta;
 }
+
+export function asin(offsetX, offsetY, hypotenuse) {
+  if (!hypotenuse) {
+    return 0;
+  }
+  let theta = Math.asin(offsetY / hypotenuse);
+  if (offsetX < 0) {
+    theta = Math.PI - theta;
+  }
+  return theta;
+}

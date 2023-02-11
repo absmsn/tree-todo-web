@@ -1,10 +1,10 @@
-import { Dropdown, Input } from "antd";
+import { useEffect, useMemo, useState } from "react";
 import { computed } from "mobx";
 import { observer } from "mobx-react";
-import { useMemo, useState } from "react";
+import { Dropdown, Input } from "antd";
+import { asin, atan, crossProduct } from "../../../../utils/math";
 import { getQuaraticBezierControlPoint } from "../../../../utils/graph";
 import conditionAPI from "../../../../apis/condition";
-import { atan } from "../../../../utils/math";
 import style from "./index.module.css";
 
 const arrowLength = 10;
@@ -20,7 +20,9 @@ const menuItems = [
   { key: "edit-text", label: "编辑提示" }
 ];
 
-export default observer(({ tree, condition, source, target }) => {
+const initialMenuPos = {x: 0, y: 0};
+
+export default observer(({ map, condition, source, target }) => {
   const controlPos = computed(() => {
     return getQuaraticBezierControlPoint({
       x: source.x,
@@ -28,16 +30,20 @@ export default observer(({ tree, condition, source, target }) => {
     }, {
       x: target.x,
       y: target.y
-    }, tree.root);
+    }, map.tree.root);
   }).get();
   const pointPos = useMemo(() => {
-    const x1 = source.x, y1 = source.y, r1 = source.r;
-    const x2 = target.x, y2 = target.y, r2 = target.r;
-    const distance = Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2));
-    const sx = x1 + r1 * (x2 - x1) / distance;
-    const sy = y1 + r1 * (y2 - y1) / distance;
-    const tx = x2 - r2 * (x2 - x1) / distance;
-    const ty = y2 - r2 * (y2 - y1) / distance;
+    const offsetX = target.x - source.x, offsetY = target.y - source.y;
+    // 源节点中心到目的节点中心向量的角度
+    const pointTheta = asin(offsetX, offsetY, Math.sqrt(offsetX ** 2 + offsetY ** 2));
+    const cross = crossProduct(target.x - source.x, target.y - source.y, controlPos.x - source.x, controlPos.y - source.y);
+    // 贝塞尔曲线的出发点和终止点,与控制点的方位有关
+    const fromTheta = pointTheta + Math.sign(cross) * Math.PI / 3;
+    const toTheta = pointTheta + Math.sign(cross) * (2 / 3 * Math.PI);
+    const sx = source.x + source.r * Math.cos(fromTheta);
+    const sy = source.y + source.r * Math.sin(fromTheta);
+    const tx = target.x + target.r * Math.cos(toTheta);
+    const ty = target.y + target.r * Math.sin(toTheta);
 
     // 计算箭头的两个点
     const theta = atan(controlPos.y - ty, controlPos.x - tx);
@@ -59,6 +65,16 @@ export default observer(({ tree, condition, source, target }) => {
   }, [source.x, source.y, target.x, target.y]);
   const [text, setText] = useState(condition.text);
   const [isInputShow, setIsInputShow] = useState(false);
+  const [isDropdownShow, setIsDropdownShow] = useState(false);
+  const [menuPos, setMenuPos] = useState(initialMenuPos);
+
+  useEffect(() => {
+    if (isDropdownShow) {
+      const fn = () => setTimeout(() => setIsDropdownShow(false), 50);
+      document.addEventListener("mousedown", fn);
+      return (() => document.removeEventListener("mousedown", fn));
+    }
+  }, [isDropdownShow]);
 
   const onClickMenu = ({ key }) => {
     switch (key) {
@@ -70,6 +86,13 @@ export default observer(({ tree, condition, source, target }) => {
         setIsInputShow(true);
         break;
     }
+    setIsDropdownShow(false);
+  }
+
+  const onContextMenu = e => {
+    e.stopPropagation();
+    setMenuPos(map.coordination.clientToSvg(e.clientX, e.clientY));
+    setIsDropdownShow(true);
   }
 
   const onFinished = () => {
@@ -82,17 +105,25 @@ export default observer(({ tree, condition, source, target }) => {
 
   return (
     <>
-      <Dropdown
-        menu={{ items: menuItems, onClick: onClickMenu }}
-        trigger="contextMenu"
-      >
-        <path
-          d={`M ${pointPos[0]} ${pointPos[1]} Q ${controlPos.x} ${controlPos.y} ${pointPos[2]} ${pointPos[3]}`}
-          onContextMenu={e => e.stopPropagation()}
-          className={`${style.arrow} ${source.finished ? style.finished : ""}`}
+      {
+        isDropdownShow && <Dropdown
+          menu={{ items: menuItems, onClick: onClickMenu}}
+          open={isDropdownShow}
         >
-        </path>
-      </Dropdown>
+          <circle
+            cx={menuPos.x}
+            cy={menuPos.y}
+            r={1}
+            fill="transparent"
+          />
+        </Dropdown>
+      }
+      <path
+        d={`M ${pointPos[0]} ${pointPos[1]} Q ${controlPos.x} ${controlPos.y} ${pointPos[2]} ${pointPos[3]}`}
+        className={`${style.arrow} ${source.finished ? style.finished : ""}`}
+        onContextMenu={onContextMenu}
+      >
+      </path>
       <polyline
         points={`${pointPos[4]} ${pointPos[5]}, ${pointPos[2]} ${pointPos[3]}, ${pointPos[6]} ${pointPos[7]}`}
         className={`${style.line} ${source.finished ? style.finished : ""}`}

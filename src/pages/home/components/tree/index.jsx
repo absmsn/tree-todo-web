@@ -98,7 +98,7 @@ export default observer(function Tree({ map, tree, coordination, svgRef }) {
       const target = peers[j].target;
       if (!isWrapped(node) && !isWrapped(target)) {
         conditions.push(<ConditionLink
-          tree={tree}
+          map={map}
           source={node}
           target={target}
           condition={peers[j]}
