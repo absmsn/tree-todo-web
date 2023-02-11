@@ -53,3 +53,7 @@
 .dark .unfinished {
   fill: #1f1f1f;
 }
+
+.expired {
+  opacity: 0.4;
+}

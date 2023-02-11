@@ -5,6 +5,7 @@ import { Dropdown, message } from "antd";
 import { PLAIN_NODE_DEFAULT_SIZE } from "../../../../constants/geometry";
 import { getChildNodePosition, reArrangeTree } from "../../../../utils/graph";
 import { Add_CONDITION_TASK } from "../../../../constants/event";
+import { pointDistance } from "../../../../utils/math";
 import nodeAPI from "../../../../apis/node";
 import eventChannel from "../../../../utils/event";
 import NodeComment from "../node-comment";
@@ -17,7 +18,7 @@ import {
   markAsUnfinished,
   wrapChildren
 } from "../../../../utils/node";
-import { pointDistance } from "../../../../utils/math";
+import style from "./index.module.css";
 
 const baseDropdownItems = [
   {key: "add-child", label: "添加子节点"},
@@ -36,6 +37,8 @@ const removeBackgroundItem = {key: "remove-background", label: "删除背景"};
 const wrapChildrenItem = {key: "wrap-children", label: "收起子节点"};
 const expandChildrenItem = {key: "expand-children", label: "展开子节点"};
 
+const initialMenuPos = {x: 0, y: 0};
+
 export default observer(function NodeMenu({
   map,
   tree,
@@ -49,27 +52,7 @@ export default observer(function NodeMenu({
   const [configPopoverShow, setConfigPopoverShow] = useState(false);
   const [menuShow, setMenuShow] = useState(false);
   const [messageAPI, messageContext] = message.useMessage();
-  const nodePos = useMemo(() => {
-    const pos = {x: 0, y: 0};
-    if (node) {
-      const nodeClientPos = map.coordination.svgToClient(node.x, node.y);
-      pos.x = nodeClientPos.x - map.coordination.svgLeft;
-      pos.y = nodeClientPos.y - map.coordination.svgTop;
-    }
-    return pos;
-  }, [node, node?.x, node?.y]);
-
-  let nodeCommentView = null;
-  if (isCommentShow && node) {
-    // 节点的中心位置在client中的坐标
-    nodeCommentView = <NodeComment
-      node={node}
-      show={isCommentShow}
-      x={nodePos.x}
-      y={nodePos.y}
-      setIsCommentShow={setIsCommentShow}
-    />
-  }
+  const [nodePos, setNodePos] = useState(initialMenuPos);
 
   const onAddChild = async () => {
     let center = getChildNodePosition(node, PLAIN_NODE_DEFAULT_SIZE);
@@ -101,6 +84,11 @@ export default observer(function NodeMenu({
           setLeft(e.clientX - box.left);
           setTop(e.clientY - box.top);
           setNode(node);
+          // 计算dropdown弹出的坐标
+          const nodeClientPos = map.coordination.svgToClient(node.x, node.y);
+          nodeClientPos.x -= map.coordination.svgLeft;
+          nodeClientPos.y -= map.coordination.svgTop;
+          setNodePos(nodeClientPos);
           setMenuShow(true);
           break;
         }
@@ -230,15 +218,24 @@ export default observer(function NodeMenu({
         }}
         open={menuShow}
       >
-        <div style={{
-          position: "absolute",
-          left: left,
-          top: top,
-          width: 0,
-          height: 0,
-        }}></div>
+        <div
+          style={{
+            left: left,
+            top: top
+          }}
+          className={style.inner}
+        >
+        </div>
       </Dropdown>
-      {nodeCommentView}
+      {
+        !!(isCommentShow && node) && <NodeComment
+          node={node}
+          show={isCommentShow}
+          x={nodePos.x}
+          y={nodePos.y}
+          setIsCommentShow={setIsCommentShow}
+        />
+      }
       {
         configPopoverShow && <ConfigPopover
           x={nodePos.x}

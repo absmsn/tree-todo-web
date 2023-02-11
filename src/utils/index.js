@@ -14,7 +14,7 @@ export function randomColorHSL(minH = 0, maxH = 360, minS = 0, maxS = 100,minL =
 }
 
 export function randomBgColor() {
-  return randomColorHSL(0, 360, 0, 100, 0, 60);
+  return randomColorHSL(0, 360, 0, 100, 25, 75);
 }
 
 export function getTagsMutations(oldTags, newTags) {

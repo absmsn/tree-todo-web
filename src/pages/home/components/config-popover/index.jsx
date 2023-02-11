@@ -50,7 +50,7 @@ const RepeatTime = observer(({ node, startTime, endTime, onRepeatChange }) => {
   const [repeatMinute, setRepeatMinute] = useState(repeatComponents.minute);
   const disabled = useMemo(() => !startTime || !endTime, [startTime, endTime]);
 
-  const repeatChange = () => {
+  useEffect(() => {
     let repeat;
     if (!repeatMonth && !repeatDay && !repeatHour && !repeatMinute) {
       repeat = "";
@@ -60,16 +60,13 @@ const RepeatTime = observer(({ node, startTime, endTime, onRepeatChange }) => {
     if (onRepeatChange) {
       onRepeatChange(repeat);
     }
-  }
+  }, [repeatMonth, repeatDay, repeatHour, repeatMinute]);
 
   const clearRepeat = () => {
     setRepeatMonth(null);
     setRepeatDay(null);
     setRepeatHour(null);
     setRepeatMinute(null);
-    if (node.repeat && onRepeatChange) {
-      onRepeatChange("");
-    }
   }
 
   return (
@@ -96,10 +93,7 @@ const RepeatTime = observer(({ node, startTime, endTime, onRepeatChange }) => {
             value={repeatMonth}
             disabled={disabled}
             placeholder="重复月份"
-            onChange={value => {
-              setRepeatMonth(value);
-              repeatChange();
-            }}
+            onChange={setRepeatMonth}
             className={style.inputNumber}
           />
           <label>月</label>
@@ -110,10 +104,7 @@ const RepeatTime = observer(({ node, startTime, endTime, onRepeatChange }) => {
             value={repeatDay}
             disabled={disabled}
             placeholder="重复天数"
-            onChange={value => {
-              setRepeatDay(value);
-              repeatChange();
-            }}
+            onChange={setRepeatDay}
             className={style.inputNumber}
           />
           <label>天</label>
@@ -126,10 +117,7 @@ const RepeatTime = observer(({ node, startTime, endTime, onRepeatChange }) => {
             value={repeatHour}
             disabled={disabled}
             placeholder="重复小时数"
-            onChange={value => {
-              setRepeatHour(value);
-              repeatChange();
-            }}
+            onChange={setRepeatHour}
             className={style.inputNumber}
           />
           <label>时</label>
@@ -140,10 +128,7 @@ const RepeatTime = observer(({ node, startTime, endTime, onRepeatChange }) => {
             value={repeatMinute}
             disabled={disabled}
             placeholder="重复分钟数"
-            onChange={value => {
-              setRepeatMinute(value);
-              repeatChange();
-            }}
+            onChange={setRepeatMinute}
             className={style.inputNumber}
           />
           <label>分</label>

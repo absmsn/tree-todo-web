@@ -19,8 +19,8 @@ import {
 import { reArrangeTree } from "../../../../utils/graph";
 import nodeAPI from "../../../../apis/node";
 import { Howl } from "howler";
-import style from "./index.module.css";
 import { isNumber } from "lodash";
+import style from "./index.module.css";
 
 const initialPos = { x: 0, y: 0 };
 
@@ -30,29 +30,37 @@ const getNextLoop = (startTime, endTime, repeat) => {
   if (!month && !day && !hour && !minute) {
     throw Error();
   }
-  const nowStart = new Date(startTime), now = Date.now(), duration = endTime.getTime() - startTime.getTime();
+  let nowStart = new Date(startTime), nextStart, now = Date.now(), duration = endTime.getTime() - startTime.getTime();
   nowStart.setMonth(nowStart.getMonth() + month);
   nowStart.setDate(nowStart.getDate() + day);
   nowStart.setHours(nowStart.getHours() + hour, nowStart.getMinutes() + minute);
-  while (now > nowStart.getTime()) {
-    // 已经超时,需要找到当前所在的周期内
-    if (month > 0) {
-      nowStart.setMonth(nowStart.getMonth() + month);
-    }
-    if (day > 0) {
-      nowStart.setDate(nowStart.getDate() + day);
-    }
-    if (hour > 0) {
-      nowStart.setHours(nowStart.getHours() + hour);
-    }
-    if (minute > 0) {
-      nowStart.setMinutes(nowStart.getMinutes() + minute);
+  if (now < nowStart.getTime()) {
+    nextStart = nowStart;
+    nowStart = new Date(startTime);
+  } else {
+    while (now > nowStart.getTime()) {
+      // 已经超时,需要找到当前所在的周期内
+      const start = nowStart.getTime();
+      if (month > 0) {
+        nowStart.setMonth(nowStart.getMonth() + month);
+      }
+      if (day > 0) {
+        nowStart.setDate(nowStart.getDate() + day);
+      }
+      if (hour > 0) {
+        nowStart.setHours(nowStart.getHours() + hour);
+      }
+      if (minute > 0) {
+        nowStart.setMinutes(nowStart.getMinutes() + minute);
+      }
+      // 已经找到了新的周期
+      if (now >= start && now < nowStart.getTime()) {
+        nextStart = nowStart;
+        nowStart = new Date(start);
+        break;
+      }
     }
   }
-  const nextStart = new Date(nowStart.getTime());
-  nextStart.setMonth(nextStart.getMonth() + month);
-  nextStart.setDate(nextStart.getDate() + day);
-  nextStart.setHours(nextStart.getHours() + hour, nextStart.getMinutes() + minute);
   return [
     nowStart,
     new Date(nowStart.getTime() + duration),
@@ -175,6 +183,7 @@ export default observer(({ node, tree, coordination, dark }) => {
   const nodeAreaRef = useRef(null);
   const prevMousePos = useRef(initialPos);
   const today = useContext(TodayContext);
+  const [expired, setExpired] = useState(false);
   const [nearDeadline, setNearDeadline] = useState(false);
   const [isMouseDown, setIsMouseDown] = useState(false);
   const [isMouseMoving, setIsMouseMoving] = useState(false);
@@ -186,38 +195,72 @@ export default observer(({ node, tree, coordination, dark }) => {
   useEffect(() => {
     // 设置为完成状态,此时要取消高亮效果
     if (node.finished) {
+      setExpired(false);
       return setNearDeadline(false);
     }
     // 设置了终止日期,终止日期在今天,并且任务还未过期
     const deadlineMs = node.endTime?.getTime(), now = Date.now();
-    if (node.endTime && ((deadlineMs - today.getTime()) < MILLSECONDS_PER_DAY) && (deadlineMs >= now)) {
-      setNearDeadline(true);
-      const timer = setTimeout(() => {
-        setNearDeadline(false);
-        notification.info({
-          message: "任务过期",
-          description: <>
-            <div className="mb-2">任务{node.title}于{toHourMinute(node.endTime)}到期</div>
-            <Space size={12}>
-              <a onClick={() => tree.setSelectedNode(node)}>定位</a>
-              {
-                !node.finished && <a
-                  onClick={() => !node.finished && markAsFinished(node)}>标记为已完成</a>
-              }
-            </Space>
-          </>,
-          duration: 30
+    if (node.endTime) {
+      if (((deadlineMs - today.getTime()) < MILLSECONDS_PER_DAY) && deadlineMs >= now) {
+        setNearDeadline(true);
+        const timer = setTimeout(() => {
+          setNearDeadline(false);
+          notification.info({
+            message: "任务过期",
+            description: <>
+              <div className="mb-2">任务{node.title}于{toHourMinute(node.endTime)}到期</div>
+              <Space size={12}>
+                <a onClick={() => tree.setSelectedNode(node)}>定位</a>
+                {
+                  !node.finished && <a
+                    onClick={() => !node.finished && markAsFinished(node)}>标记为已完成</a>
+                }
+              </Space>
+            </>,
+            duration: 30
+          });
+          const sound = new Howl({
+            src: ["/audios/expired.mp3"]
+          });
+          sound.play();
+          setExpired(true);
+        }, deadlineMs - now); // 到期的时候取消闪烁
+        return (() => {
+          clearTimeout(timer);
         });
-        const sound = new Howl({
-          src: ["/audios/expired.mp3"]
-        });
-        sound.play();
-      }, deadlineMs - now); // 到期的时候取消闪烁
-      return (() => {
-        clearTimeout(timer);
-      });
+      } else if (deadlineMs < now) {
+        // 已经过期
+        setExpired(true);
+      }
     }
   }, [node.endTime, node.finished, today]);
+
+  useEffect(() => {
+    if (node.startTime && !node.finished) {
+      const duration = node.startTime.getTime() - Date.now();
+      if (duration >= 0) {
+        const timerId = timer.setTimeout(() => {
+          notification.info({
+            message: "任务开始",
+            description: <>
+              <div className="mb-2">任务{node.title}于{toHourMinute(node.startTime)}开始</div>
+              <Space size={12}>
+                <a onClick={() => tree.setSelectedNode(node)}>定位</a>
+              </Space>
+            </>,
+            duration: 15
+          });
+          const sound = new Howl({
+            src: ["/audios/ready.mp3"]
+          });
+          sound.play();
+        }, duration);
+        return (() => {
+          timer.clearTimeout(timerId);
+        });
+      }
+    }
+  }, [node.startTime, node.finished]);
 
   // 到期后自动设置为完成
   useEffect(() => {
@@ -260,6 +303,10 @@ export default observer(({ node, tree, coordination, dark }) => {
             loopRangeRef.current.endTime = nowEnd;
             node.setStartTime(nowStart);
             node.setEndTime(nowEnd);
+            nodeAPI.edit(node.id, {
+              startTime: nowStart,
+              endTime: nowEnd
+            });
           }
           const deadlineDuration = Math.max(nextStart.getTime() - Date.now(), 0);
           loopRangeRef.current.setRangeTimerId = timer.setTimeout(() => {
@@ -267,6 +314,10 @@ export default observer(({ node, tree, coordination, dark }) => {
             loopRangeRef.current.endTime = nextEnd;
             node.setStartTime(nextStart);
             node.setEndTime(nextEnd);
+            nodeAPI.edit(node.id, {
+              startTime: nextStart,
+              endTime: nextEnd
+            });
             if (node.autoFinish) {
               const duration = Math.max(nextStart.getTime() - Date.now(), 0);
               loopRangeRef.current.setFinishTimerId = timer.setTimeout(() => {
@@ -276,7 +327,7 @@ export default observer(({ node, tree, coordination, dark }) => {
                 }
               }, duration);
             }
-            message.success(<span>任务{node.title}已开始下一次循环!</span>);
+            message.success(<span>任务{node.title}已开始下一个周期!</span>);
             tick();
           }, deadlineDuration);
         }
@@ -382,7 +433,7 @@ export default observer(({ node, tree, coordination, dark }) => {
         onMouseMove={onMouseMove}
         onMouseUp={onMouseUp}
         onMouseLeave={onMouseLeave}
-        className={`${nearDeadline && style.nearDeadline} ${isMouseDown && "cursor-grabbing"}`}
+        className={`${nearDeadline && style.nearDeadline} ${isMouseDown && "cursor-grabbing"} ${expired && style.expired}`}
       >
         {
           node.backgroundImageURL && <BackgroundImage node={node} />
