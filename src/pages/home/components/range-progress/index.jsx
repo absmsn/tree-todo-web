@@ -25,6 +25,7 @@ export default observer(function RangeProgress({ node }) {
         timeoutTimerId = timer.setTimeout(() => {
           setNow(Date.now());
           intervalTimerId = timer.setInterval(() => {
+            setNow(Date.now());
             if (Date.now() - node.endTime.getTime() > 0) {
               timer.clearInterval(timeoutTimerId);
             }
@@ -33,6 +34,7 @@ export default observer(function RangeProgress({ node }) {
       } else if (duration > unit) {
         setNow(Date.now());
         intervalTimerId = timer.setInterval(() => {
+          setNow(Date.now());
           if (Date.now() - node.endTime.getTime() > 0) {
             timer.clearInterval(timeoutTimerId);
           }
