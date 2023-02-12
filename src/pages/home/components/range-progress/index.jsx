@@ -5,6 +5,8 @@ import { DEFAULT_STROKE_WIDTH } from "../../../../constants/geometry";
 import dayjs from "dayjs";
 import { useState } from "react";
 import { useEffect } from "react";
+import { timer } from "../../../../utils/time";
+import { isNumber } from "lodash";
 
 const getProgressColor = progress => {
   return progress < 180 ? (progress < 36 ? "#f5222d" : "#fadb14") : "#95de64";
@@ -15,25 +17,37 @@ export default observer(function RangeProgress({ node }) {
 
   useEffect(() => {
     if (node.startTime && node.endTime) {
-      let duration = node.endTime.getTime() - Date.now(), timerId;
+      let duration = node.endTime.getTime() - Date.now(), timeoutTimerId, intervalTimerId;
       const unit = Math.floor((node.endTime.getTime() - node.startTime.getTime()) / 100);
-      if (duration > unit) {
-        timerId = setInterval(() => {
+      // 还未开始
+      if (duration > (node.endTime.getTime() - node.startTime.getTime())) {
+        const wait = node.startTime.getTime() - Date.now();
+        timeoutTimerId = timer.setTimeout(() => {
           setNow(Date.now());
+          intervalTimerId = timer.setInterval(() => {
+            if (Date.now() - node.endTime.getTime() > 0) {
+              timer.clearInterval(timeoutTimerId);
+            }
+          }, unit);
+        }, wait);
+      } else if (duration > unit) {
+        setNow(Date.now());
+        intervalTimerId = timer.setInterval(() => {
           if (Date.now() - node.endTime.getTime() > 0) {
-            clearInterval(timerId);
+            timer.clearInterval(timeoutTimerId);
           }
         }, unit);
       } else if (duration > 0) { // 如果还不到百分之一的时间就要结束了
-        timerId = setTimeout(() => setNow(Date.now(), duration));
-      } else {
+        timeoutTimerId = timer.setTimeout(() => setNow(Date.now(), duration));
+      } else { // 已经结束
         setNow(Date.now());
       }
       return () => {
-        if (duration > unit) {
-          clearInterval(timerId);
-        } else if (duration > 0) {
-          clearTimeout(timerId);
+        if (isNumber(intervalTimerId)) {
+          timer.clearInterval(intervalTimerId);
+        }
+        if (isNumber(timeoutTimerId > 0)) {
+          timer.clearTimeout(timeoutTimerId);
         }
       };
     }

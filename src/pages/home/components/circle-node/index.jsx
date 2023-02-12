@@ -195,50 +195,64 @@ export default observer(({ node, tree, coordination, dark }) => {
   useEffect(() => {
     // 设置为完成状态,此时要取消高亮效果
     if (node.finished) {
-      setExpired(false);
       return setNearDeadline(false);
     }
     if (node.endTime) {
-      // 设置了终止日期,终止日期在今天,并且任务还未过期
       const deadlineMs = node.endTime?.getTime(), now = Date.now();
-      if (deadlineMs >= now) {
-        if (!node.startTime || node.startTime.getTime() <= now) {
-          setExpired(false);
-        }
-        if ((deadlineMs - today.getTime()) < MILLSECONDS_PER_DAY) {
-          setNearDeadline(true);
-          const timer = setTimeout(() => {
-            setNearDeadline(false);
-            notification.info({
-              message: "任务过期",
-              description: <>
-                <div className="mb-2">任务{node.title}于{toHourMinute(node.endTime)}到期</div>
-                <Space size={12}>
-                  <a onClick={() => tree.setSelectedNode(node)}>定位</a>
-                  {
-                    !node.finished && <a onClick={() => !node.finished && markAsFinished(node)}>标记为已完成</a>
-                  }
-                </Space>
-              </>,
-              duration: 30
-            });
-            const sound = new Howl({
-              src: ["/audios/expired.mp3"]
-            });
-            sound.play();
-            setExpired(true);
-          }, deadlineMs - now); // 到期的时候取消闪烁
-          return (() => {
-            clearTimeout(timer);
-          });
-        }
-      } else if (deadlineMs < now) {
-        // 已经过期
-        setExpired(true);
+      if (deadlineMs <= now) {
+        setNearDeadline(false);
+      } else if ((deadlineMs - today.getTime()) < MILLSECONDS_PER_DAY) {
+        // 设置了终止日期,终止日期在今天,并且任务还未过期
+        setNearDeadline(true);
+        const timerId = timer.setTimeout(() => {
+          setNearDeadline(false);
+        }, deadlineMs - now); // 到期的时候取消闪烁
+        return (() => {
+          timer.clearTimeout(timerId);
+        });
       }
     }
   }, [node.startTime, node.endTime, node.finished, today]);
 
+  // 设置过期状态
+  useEffect(() => {
+    if (node.finished) {
+      return setExpired(false);
+    }
+    if (node.endTime) {
+      if (node.endTime.getTime() > Date.now()) {
+        setExpired(false);
+        const duration = node.endTime.getTime() - Date.now();
+        const timerId = timer.setTimeout(() => {
+          notification.info({
+            message: "任务过期",
+            description: <>
+              <div className="mb-2">任务{node.title}于{toHourMinute(node.endTime)}到期</div>
+              <Space size={12}>
+                <a onClick={() => tree.setSelectedNode(node)}>定位</a>
+                {
+                  !node.finished && <a onClick={() => !node.finished && markAsFinished(node)}>标记为已完成</a>
+                }
+              </Space>
+            </>,
+            duration: 30
+          });
+          const sound = new Howl({
+            src: ["/audios/expired.mp3"]
+          });
+          sound.play();
+          setExpired(true);
+        }, duration);
+        return (() => {
+          timer.clearTimeout(timerId);
+        });
+      } else {
+        setExpired(true);
+      }
+    }
+  }, [node.startTime, node.endTime, node.finished]);
+
+  // 开始时提醒
   useEffect(() => {
     if (node.startTime && !node.finished) {
       const duration = node.startTime.getTime() - Date.now();
@@ -282,6 +296,7 @@ export default observer(({ node, tree, coordination, dark }) => {
     }
   }, [node.autoFinish, node.endTime]);
 
+  // 处理周期任务
   useEffect(() => {
     // 是由外部的其它代码修改了startTime或endTime,以及重新设置了repeat或autoFinish,此时需要重新设置定时器
     if (node.startTime !== loopRangeRef.current.startTime
