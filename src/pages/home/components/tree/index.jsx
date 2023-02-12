@@ -1,9 +1,10 @@
 import { useContext, useEffect, useState } from "react";
 import { observer } from "mobx-react";
+import { App as AntdApp } from "antd";
 import Edge from "../edge";
 import Node from "../circle-node";
 import ConditionLink from "../condition-link";
-import { 
+import {
   isParentOfAnother,
   whichNodeIsPointIn,
   getQuaraticBezierControlPoint
@@ -15,22 +16,24 @@ import eventChannel from "../../../../utils/event";
 import nodeAPI from "../../../../apis/node";
 import style from "./index.module.css";
 
-const initialPos = {x: 0, y: 0};
+const initialPos = { x: 0, y: 0 };
 
-const AddPath = observer(({map, tree, svgRef}) => {
+const AddPath = observer(({ map, tree, svgRef }) => {
   const [isAddPreShow, setIsAddPreShow] = useState(false);
   const [startPoint, setStartPoint] = useState(initialPos);
   const [endPoint, setEndPoint] = useState(initialPos);
   const [controlPos, setControlPos] = useState(initialPos);
+  const { message } = AntdApp.useApp();
 
   useEffect(() => {
     const startMove = (mapID, node, e) => {
       if (mapID === map.id) {
         setIsAddPreShow(true);
-        const start = {x: node.x, y: node.y}, end = map.coordination.clientToSvg(e.clientX, e.clientY);
+        const start = { x: node.x, y: node.y }, end = map.coordination.clientToSvg(e.clientX, e.clientY);
         setStartPoint(start);
         setControlPos(getQuaraticBezierControlPoint(start, end, tree.root));
         setEndPoint(end);
+        message.info("点击你要连接到的节点,按下ESC键以取消。");
         const moving = e => {
           const end = map.coordination.clientToSvg(e.clientX, e.clientY);
           setEndPoint(end);
@@ -41,13 +44,23 @@ const AddPath = observer(({map, tree, svgRef}) => {
           const point = map.coordination.clientToSvg(e.clientX, e.clientY);
           if (point) {
             const target = whichNodeIsPointIn(tree, point.x, point.y);
-            if (target && !node.conditions.find(p => p.target === target)) {
+            if (target) {
+              if (node.conditions.find(p => p.target === target)) {
+                message.error("不能添加重复连接！");
+                return;
+              }
+              if (target === node) {
+                message.error("不能与自己相连！");
+                return;
+              }
               // 两个节点不能是父子节点关系，否则没有意义
               if (isParentOfAnother(target, node) || isParentOfAnother(node, target)) {
+                message.error("不能与父节点或子节点相连！");
                 return;
               }
               // 不允许双向连接,即已有a->b,想要添加b->a的情况
               if (target.conditions.find(p => p.target === node)) {
+                message.error("只允许添加一个方向的连接！");
                 return;
               }
               node.addCondition(target);
@@ -89,7 +102,7 @@ const AddPath = observer(({map, tree, svgRef}) => {
 });
 
 export default observer(function Tree({ map, tree, coordination, svgRef }) {
-  const {on: dark} = useContext(DarkModeContext);
+  const { on: dark } = useContext(DarkModeContext);
 
   const conditions = [];
   for (let i = 0; i < tree.nodes.length; i++) {

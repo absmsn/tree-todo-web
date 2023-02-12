@@ -14,7 +14,7 @@ async function toggleParentFinished(node) {
   while (node.parent) {
     // 检查是否所有兄弟节点都是已完成状态
     let not = node.parent.children.some(d => !d.finished);
-    if (not) {
+    if (!node.parent.children.length || not) {
       break;
     }
     node.parent.setFinished(true);

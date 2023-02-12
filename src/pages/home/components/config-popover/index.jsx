@@ -164,15 +164,19 @@ export default observer(({ x, y, node, show, setShow }) => {
       mutation.title = title;
     }
     if (start && (!node.startTime || (node.startTime.getTime() !== start.toDate().getTime()))) {
-      storeMutation.startTime = start.toDate();
-      mutation.startTime = start.toDate();
+      const startTime = start.toDate();
+      startTime.setSeconds(0);
+      storeMutation.startTime = startTime;
+      mutation.startTime = startTime;
     } else if (!start) {
       storeMutation.startTime = null;
       mutation.startTime = null;
     }
     if (end && (!node.endTime || (node.endTime.getTime() !== end.toDate().getTime()))) {
-      storeMutation.endTime = end.toDate();
-      mutation.endTime = end.toDate();
+      const endTime = end.toDate();
+      endTime.setSeconds(0);
+      storeMutation.endTime = endTime;
+      mutation.endTime = endTime;
     } else if (!end) {
       storeMutation.endTime = null;
       mutation.endTime = null;
@@ -196,12 +200,6 @@ export default observer(({ x, y, node, show, setShow }) => {
 
   const onDateRangeChange = (range) => {
     const start = range?.[0], end = range?.[1];
-    if (start) {
-      start.toDate().setSeconds(0);
-    }
-    if (end) {
-      end.toDate().setSeconds(0);
-    }
     setTimeRange([start, end]);
   }
 
