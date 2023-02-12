@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from "react"
 import { observer } from "mobx-react";
 import { Popover, Badge } from "antd";
 import { DEFAULT_STROKE_WIDTH } from "../../../../constants/geometry";
+import { TooltipSvgSon } from "../../../../components/tooltip-svg-son";
 import { timer } from "../../../../utils/time";
 import { isNumber } from "lodash";
 import dayjs from "dayjs";
@@ -13,6 +14,7 @@ const getProgressColor = progress => {
 
 export default observer(function RangeProgress({ node }) {
   const [now, setNow] = useState(Date.now());
+  const [isPopoverShow, setIsPopoverShow] = useState(false);
 
   useEffect(() => {
     if (node.startTime && node.endTime) {
@@ -68,7 +70,7 @@ export default observer(function RangeProgress({ node }) {
     }
     return progress;
   }, [node.startTime, node.endTime, node.finished, now]);
-  
+
   const endPos = useMemo(() => {
     // 如果是0度,需要至少展示一点,所以设置为1度
     const angle = ((!progress ? 1 : progress) - 90) / 180 * Math.PI;
@@ -78,73 +80,90 @@ export default observer(function RangeProgress({ node }) {
     };
   }, [progress, node.x, node.y]);
 
-  let popoverContent, timeNow = Date.now(), timeFormat = "MM-DD HH:mm";
-  if (node.finished) {
-    const finishTime = dayjs(node.finishTime);
-    popoverContent = <>
-      <Badge color="green" text="已完成" className="mb-1" />
-      任务已于{finishTime.toNow(true)}前 ({finishTime.format(timeFormat)}) 完成
-    </>;
-  } else if (timeNow > node.endTime.getTime()) {
-    const end = dayjs(node.endTime);
-    popoverContent = <>
-      <Badge color="grey" text="已过期" className="mb-1" />
-      任务已于{end.toNow(true)}前 ({end.format(timeFormat)}) 过期
-    </>;
-  } else if (timeNow < node.startTime.getTime()) {
-    const start = dayjs(node.startTime);
-    popoverContent = <>
-      <Badge color="orange" text="未开始" className="mb-1" />
-      任务将于{start.fromNow(true)}后 ({start.format(timeFormat)}) 开始
-    </>;
-  } else {
-    popoverContent = <>
-      <Badge color="yellow" text="进行中" className="mb-1" />
-      <div className="mb-1">还剩{Math.ceil(progress / 360 * 100)}%的时间</div>
-      <div>
-        <span>{dayjs(node.endTime).fromNow()}结束</span>
-        <span>({dayjs(node.endTime).format(timeFormat)})</span>
-      </div>
-    </>
+  const onMouseEnter = () => !isPopoverShow && setIsPopoverShow(true);
+
+  const onMouseLeave = () => isPopoverShow && setIsPopoverShow(false);
+
+  let popoverContent = null;
+  if (isPopoverShow) {
+    let timeNow = Date.now(), timeFormat = "MM-DD HH:mm";
+    if (node.finished) {
+      const finishTime = dayjs(node.finishTime);
+      popoverContent = <>
+        <Badge color="green" text="已完成" className="mb-1" />
+        任务已于{finishTime.toNow(true)}前 ({finishTime.format(timeFormat)}) 完成
+      </>;
+    } else if (timeNow > node.endTime.getTime()) {
+      const end = dayjs(node.endTime);
+      popoverContent = <>
+        <Badge color="grey" text="已过期" className="mb-1" />
+        任务已于{end.toNow(true)}前 ({end.format(timeFormat)}) 过期
+      </>;
+    } else if (timeNow < node.startTime.getTime()) {
+      const start = dayjs(node.startTime);
+      popoverContent = <>
+        <Badge color="orange" text="未开始" className="mb-1" />
+        任务将于{start.fromNow(true)}后 ({start.format(timeFormat)}) 开始
+      </>;
+    } else {
+      popoverContent = <>
+        <Badge color="yellow" text="进行中" className="mb-1" />
+        <div className="mb-1">还剩{Math.ceil(progress / 360 * 100)}%的时间</div>
+        <div>
+          <span>{dayjs(node.endTime).fromNow()}结束</span>
+          <span>({dayjs(node.endTime).format(timeFormat)})</span>
+        </div>
+      </>
+    }
   }
 
   return (
-    <Popover
-      trigger="hover"
-      content={popoverContent}
-      overlayClassName="tooltip-style range-progess"
-    >
+    <>
       {
-        // 当为360度时,起始和终止坐标重叠,无法确认绘制方向,使用circle
-        progress > 0
-          ? (progress === 360
-            ? <circle
-              cx={node.x}
-              cy={node.y}
-              r={node.r}
-              fill="none"
-              stroke={`${getProgressColor(progress)}`}
-              strokeWidth={DEFAULT_STROKE_WIDTH + 1}
-            >
-            </circle>
-            : <path
-              d={`M ${node.x} ${node.y - node.r} A ${node.r} ${node.r} 0 ${progress > 180 ? 1 : 0} 1 ${endPos.x} ${endPos.y}`}
-              fill="none"
-              stroke={`${getProgressColor(progress)}`}
-              strokeWidth={DEFAULT_STROKE_WIDTH + 1}
-              strokeLinecap="round"
-            >
-            </path>
-          )
-        : <circle
-          cx={node.x}
-          cy={node.y}
-          r={node.r}
-          fill="none"
-          stroke="transparent"
-          strokeWidth={DEFAULT_STROKE_WIDTH}
-        />
+        isPopoverShow && <Popover
+          open={isPopoverShow}
+          content={popoverContent}
+          overlayClassName="tooltip-style range-progess"
+        >
+          <TooltipSvgSon x={node.x} y={node.y} />
+        </Popover>
       }
-    </Popover>
+      <g
+        onMouseEnter={onMouseEnter}
+        onMouseLeave={onMouseLeave}
+      >
+        {
+          // 当为360度时,起始和终止坐标重叠,无法确认绘制方向,使用circle
+          progress > 0
+            ? (progress === 360
+              ? <circle
+                cx={node.x}
+                cy={node.y}
+                r={node.r}
+                fill="none"
+                stroke={`${getProgressColor(progress)}`}
+                strokeWidth={DEFAULT_STROKE_WIDTH + 1}
+              >
+              </circle>
+              : <path
+                d={`M ${node.x} ${node.y - node.r} A ${node.r} ${node.r} 0 ${progress > 180 ? 1 : 0} 1 ${endPos.x} ${endPos.y}`}
+                fill="none"
+                stroke={`${getProgressColor(progress)}`}
+                strokeWidth={DEFAULT_STROKE_WIDTH + 1}
+                strokeLinecap="round"
+              >
+              </path>
+            )
+          : <circle
+            cx={node.x}
+            cy={node.y}
+            r={node.r}
+            fill="none"
+            stroke="transparent"
+            strokeWidth={DEFAULT_STROKE_WIDTH}
+          />
+        }
+      </g>
+    </>
   )
 });

@@ -23,9 +23,7 @@ export default function NodeComment({
   return (
     <Popover
       content={
-        <div 
-          className={style.innerContainer}
-        >
+        <div className={style.innerContainer}>
           <div className={style.toolbar}>
             <CloseOutlined
               className={style.toolbarIcon}
