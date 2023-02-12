@@ -489,7 +489,7 @@ export default observer(({ node, tree, coordination, dark }) => {
         />
       }
       {
-        node.endTime && <RangeProgress node={node} />
+        !!((node.startTime && node.endTime) || node.finished) && <RangeProgress node={node} />
       }
       {
         isTitleInputShow && <TitleInput

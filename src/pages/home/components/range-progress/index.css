@@ -1,0 +1,7 @@
+.range-progess .ant-badge {
+  display: block !important;
+}
+
+.range-progess .ant-badge-status-text {
+  font-size: 0.875rem !important;
+}

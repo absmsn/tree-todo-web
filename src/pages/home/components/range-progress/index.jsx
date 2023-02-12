@@ -1,12 +1,11 @@
-import { useMemo } from "react"
+import { useState, useEffect, useMemo } from "react"
 import { observer } from "mobx-react";
-import { Popover } from "antd";
+import { Popover, Badge } from "antd";
 import { DEFAULT_STROKE_WIDTH } from "../../../../constants/geometry";
-import dayjs from "dayjs";
-import { useState } from "react";
-import { useEffect } from "react";
 import { timer } from "../../../../utils/time";
 import { isNumber } from "lodash";
+import dayjs from "dayjs";
+import "./index.css";
 
 const getProgressColor = progress => {
   return progress < 180 ? (progress < 36 ? "#f5222d" : "#fadb14") : "#95de64";
@@ -62,13 +61,14 @@ export default observer(function RangeProgress({ node }) {
     }
     if (node.startTime && node.endTime) {
       const start = node.startTime.getTime(), end = node.endTime.getTime();
-      if (timeNow > end) {
+      if (timeNow > end) { // 已经结束
         timeNow = end;
       }
       progress = Math.floor((end - timeNow) / Math.max((end - start), 1) * 360);
     }
     return progress;
   }, [node.startTime, node.endTime, node.finished, now]);
+  
   const endPos = useMemo(() => {
     // 如果是0度,需要至少展示一点,所以设置为1度
     const angle = ((!progress ? 1 : progress) - 90) / 180 * Math.PI;
@@ -78,26 +78,46 @@ export default observer(function RangeProgress({ node }) {
     };
   }, [progress, node.x, node.y]);
 
+  let popoverContent, timeNow = Date.now(), timeFormat = "MM-DD HH:mm";
+  if (node.finished) {
+    const finishTime = dayjs(node.finishTime);
+    popoverContent = <>
+      <Badge color="green" text="已完成" className="mb-1" />
+      任务已于{finishTime.toNow(true)}前 ({finishTime.format(timeFormat)}) 完成
+    </>;
+  } else if (timeNow > node.endTime.getTime()) {
+    const end = dayjs(node.endTime);
+    popoverContent = <>
+      <Badge color="grey" text="已过期" className="mb-1" />
+      任务已于{end.toNow(true)}前 ({end.format(timeFormat)}) 过期
+    </>;
+  } else if (timeNow < node.startTime.getTime()) {
+    const start = dayjs(node.startTime);
+    popoverContent = <>
+      <Badge color="orange" text="未开始" className="mb-1" />
+      任务将于{start.fromNow(true)}后 ({start.format(timeFormat)}) 开始
+    </>;
+  } else {
+    popoverContent = <>
+      <Badge color="yellow" text="进行中" className="mb-1" />
+      <div className="mb-1">还剩{Math.ceil(progress / 360 * 100)}%的时间</div>
+      <div>
+        <span>{dayjs(node.endTime).fromNow()}结束</span>
+        <span>({dayjs(node.endTime).format(timeFormat)})</span>
+      </div>
+    </>
+  }
+
   return (
     <Popover
       trigger="hover"
-      content={
-        Date.now() > node.endTime.getTime()
-          ? "任务已过期"
-          : <>
-            <div className="mb-1">还剩{Math.ceil(progress / 360 * 100)}%的时间</div>
-            <div>
-              <span>{dayjs(node.endTime).fromNow()}结束</span>
-              <span>({dayjs(node.endTime).format("MM-DD HH:mm")})</span>
-            </div>
-          </>
-      }
-      overlayClassName="tooltip-style"
+      content={popoverContent}
+      overlayClassName="tooltip-style range-progess"
     >
       {
-        // 当为0或360度时,起始和终止坐标重叠,无法确认绘制方向,使用circle
-        progress > 0 && (
-          progress === 360
+        // 当为360度时,起始和终止坐标重叠,无法确认绘制方向,使用circle
+        progress > 0
+          ? (progress === 360
             ? <circle
               cx={node.x}
               cy={node.y}
@@ -105,7 +125,6 @@ export default observer(function RangeProgress({ node }) {
               fill="none"
               stroke={`${getProgressColor(progress)}`}
               strokeWidth={DEFAULT_STROKE_WIDTH + 1}
-              strokeLinecap="round"
             >
             </circle>
             : <path
@@ -116,7 +135,15 @@ export default observer(function RangeProgress({ node }) {
               strokeLinecap="round"
             >
             </path>
-        )
+          )
+        : <circle
+          cx={node.x}
+          cy={node.y}
+          r={node.r}
+          fill="none"
+          stroke="transparent"
+          strokeWidth={DEFAULT_STROKE_WIDTH}
+        />
       }
     </Popover>
   )
