@@ -249,6 +249,8 @@ export default observer(({ node, tree, coordination, dark }) => {
       } else {
         setExpired(true);
       }
+    } else {
+      return setExpired(false);
     }
   }, [node.startTime, node.endTime, node.finished]);
 
