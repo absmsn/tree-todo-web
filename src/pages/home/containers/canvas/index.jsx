@@ -192,13 +192,7 @@ const Canvas = observer(({ map }) => {
         top: map.coordination.viewBox.top + 20 * Math.sign(e.deltaY) * map.coordination.scale
       });
     }
-  }, 100, [
-    map.coordination.scale,
-    map.coordination.viewBox.left,
-    map.coordination.viewBox.top,
-    map.coordination.viewBox.width,
-    map.coordination.viewBox.height
-  ]);
+  }, 100, []);
 
   const onMouseDown = e => {
     if (e.target === svgRef.current && e.button === 0) {
