@@ -49,29 +49,24 @@ class Timer {
   }
 
   setInterval(callback, ms) {
-    if (ms > maxDuration) {
-      const id = this.globalId--;
-      const tick = () => {
-        const timerId = this.setTimeout(() => {
-          callback();
-          tick();
-        }, ms);
-        this.intervalMap.set(id, timerId);
-      }
-      tick();
-      return id;
-    } else {
-      return setInterval(callback, ms);
+    let id = this.globalId--, deadline = Date.now();
+    const tick = () => {
+      deadline += ms;
+      // 校准
+      const duration = Math.max(deadline - Date.now(), 0);
+      const timerId = this.setTimeout(() => {
+        callback();
+        tick();
+      }, duration);
+      this.intervalMap.set(id, timerId);
     }
+    tick();
+    return id;
   }
 
   clearInterval(intervalId) {
-    if (this.intervalMap.has(intervalId)) {
-      const timeoutId = this.intervalMap.get(intervalId);
-      this.clearTimeout(timeoutId);
-    } else {
-      clearInterval(intervalId);
-    }
+    const timeoutId = this.intervalMap.get(intervalId);
+    this.clearTimeout(timeoutId);
   }
 }
 
