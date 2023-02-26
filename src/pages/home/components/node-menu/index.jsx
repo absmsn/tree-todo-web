@@ -61,7 +61,7 @@ export default observer(function NodeMenu({
       y: center.y,
       r: PLAIN_NODE_DEFAULT_SIZE
     });
-    await reArrangeTree(tree);
+    reArrangeTree(tree);
     const nodeResult = (await nodeAPI.add({
       mapId: map.id,
       title: newNode.title,
@@ -113,7 +113,7 @@ export default observer(function NodeMenu({
 
   const onRemoveNode = async () => {
     await tree.removeNode(node.id);
-    await reArrangeTree(tree);
+    reArrangeTree(tree);
   }
 
   const onEditConfig = () => {

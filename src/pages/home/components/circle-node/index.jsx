@@ -399,14 +399,14 @@ export default observer(({ node, tree, coordination, dark }) => {
     }
   }
 
-  const onMouseUp = async e => {
+  const onMouseUp = e => {
     if (e.button === 0) {
       e.stopPropagation();
       if (isMouseDown) {
         setIsMouseDown(false);
         // 正在移动中且移动的节点不是根节点时，调整坐标
         if (isMouseMoving && node.parent) {
-          await reArrangeTree(tree);
+          reArrangeTree(tree);
         }
         setIsMouseMoving(false);
       }

@@ -1,3 +1,5 @@
+import { isArray, isFunction } from "lodash";
+
 export function geneID() {
   return String(Date.now()) + String(Math.floor(Math.random() * 1e4));
 }
@@ -39,4 +41,15 @@ export function getTagsMutations(oldTags, newTags) {
     add: addItems,
     remove: removeItems
   };
+}
+
+export function count(arr, evaluate) {
+  if (!isArray(arr) || !isFunction(evaluate)) {
+    return 0;
+  }
+  let count = 0;
+  for(let item of arr) {
+    count += !!evaluate(item)
+  }
+  return count;
 }
