@@ -5,6 +5,8 @@ import {
   PlusCircleOutlined
 } from "@ant-design/icons";
 import tagAPI from "../../../../apis/tag";
+import { DRAG_TAG_END } from "../../../../constants/event";
+import eventChannel from "../../../../utils/event";
 import style from "./index.module.css";
 
 export default observer(function FloatPanel({map, show, children}) {
@@ -27,6 +29,10 @@ export default observer(function FloatPanel({map, show, children}) {
       node.removeTag(tag.id);
     }
     tagAPI.remove(tag.id);
+  }
+
+  const onDragTagEnd = (tag, e) => {
+    eventChannel.emit(DRAG_TAG_END, map.id, tag, e);
   }
 
   const handleEditTagConfirm = () => {
@@ -62,7 +68,9 @@ export default observer(function FloatPanel({map, show, children}) {
           color={tag.color}
           closable={true}
           onClose={() => onRemoveTag(tag)}
+          onDragEnd={e => onDragTagEnd(tag, e)}
           className={style.tag}
+          draggable={true}
           key={tag.id}
         >
           <span onDoubleClick={e => {

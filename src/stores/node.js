@@ -3,6 +3,7 @@ import { isNumber, isObject } from "lodash";
 import { geneID } from "../utils";
 import { DEFAULT_STROKE_WIDTH } from "../constants/geometry";
 import ConditionStore from "./condition";
+import nodeAPI from "../apis/node";
 
 // 将所有上层节点finished标记为false
 function markParentUnfinished(node) {
@@ -162,6 +163,11 @@ export default class NodeStore {
     }
     this.children.push(child);
     markParentUnfinished(child);
+  }
+
+  async addTag(tag) {
+    this.tags.push(tag);
+    await nodeAPI.addTag(this.id, tag.id);
   }
 
   setTags(tags) {

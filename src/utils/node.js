@@ -1,5 +1,6 @@
 import nodeAPI from "../apis/node";
 import { reArrangeTree } from "./graph";
+import { pointDistance } from "./math";
 
 export const markAsFinished = async node => {
   const stack = [node], ids= [], mutations = [], mutation = {finished: true};
@@ -112,4 +113,16 @@ export function getRepeatPattern(repeatStr) {
     hour: Number(hour),
     minute: Number(minute)
   };
+}
+
+// 获取坐标所在的节点
+export function getPosRelatedNode(map, clientX, clientY) {
+  const nodes = map.tree.nodes;
+  const pos = map.coordination.clientToSvg(clientX, clientY);
+  for (let i = 0; i < nodes.length; i++) {
+    const node = nodes[i];
+    if (pointDistance(node.x, node.y, pos.x, pos.y) <= node.r) {
+      return node;
+    }
+  }
 }

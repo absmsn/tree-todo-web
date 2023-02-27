@@ -35,7 +35,10 @@ export default {
     });
   },
   addTag(nodeId, tagId) {
-    return instance.post(`/node/${nodeId}/tag/${tagId}`);
+    return instance.post("/node-tag", {
+      tagId,
+      nodeId
+    });
   },
   addTags(nodeId, tagIds) {
     return instance.post(`/node/${nodeId}/tags`, {

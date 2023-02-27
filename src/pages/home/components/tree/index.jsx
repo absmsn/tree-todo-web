@@ -9,8 +9,8 @@ import {
   whichNodeIsPointIn,
   getQuaraticBezierControlPoint
 } from "../../../../utils/graph";
-import { isWrapped } from "../../../../utils/node";
-import { Add_CONDITION_TASK } from "../../../../constants/event";
+import { getPosRelatedNode, isWrapped } from "../../../../utils/node";
+import { Add_CONDITION_TASK, DRAG_TAG_END } from "../../../../constants/event";
 import { DarkModeContext } from "../../../main";
 import eventChannel from "../../../../utils/event";
 import nodeAPI from "../../../../apis/node";
@@ -120,6 +120,21 @@ export default observer(function Tree({ map, tree, coordination, svgRef }) {
       }
     }
   }
+
+  useEffect(() => {
+    const onDragTagEnd = (mapID, tag, e) => {
+      if (mapID === map.id) {
+        const node = getPosRelatedNode(map, e.clientX, e.clientY);
+        if (node && !node.tags.includes(tag)) {
+          node.addTag(tag);
+        }
+      }
+    }
+    eventChannel.on(DRAG_TAG_END, onDragTagEnd);
+    return () => {
+      eventChannel.off(DRAG_TAG_END, onDragTagEnd);
+    };
+  }, []);
 
   const edges = tree.edges.filter(edge => !edge.source.childrenWrapped);
 
