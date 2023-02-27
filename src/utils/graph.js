@@ -159,6 +159,7 @@ export function reArrangeTree(tree) {
   const queueFlex = [flexRoot]; // 遍历生成的树所需的队列
   while (queueSource.length > 0) {
     const nodeSource = queueSource.pop(), nodeFlex = queueFlex.pop();
+    if (nodeSource.childrenWrapped) continue;
     for (let i = 0; i < nodeSource.children.length; i++) {
       const child = nodeSource.children[i];
       // 如果父节点已经和子节点聚成簇,则跳过这些没有子节点的子节点
@@ -232,6 +233,8 @@ export function reArrangeTree(tree) {
       if ((node.x - node.xSize / 2) < minLeft) minLeft = node.x - node.xSize / 2;
       if ((node.x + node.xSize / 2) > maxRight) maxRight = node.x + node.xSize / 2;
     });
+    minLeft -= spacing / 2;
+    maxRight += spacing / 2;
   }
   setLeftRight();
   let maxSpan = maxRight - minLeft;

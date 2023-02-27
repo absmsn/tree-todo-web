@@ -10,6 +10,7 @@ import {
   FullscreenExitOutlined
 } from "@ant-design/icons";
 import TagManager from "../tag-manager";
+import { isWrapped } from "../../../../utils/node";
 import style from "./index.module.css";
 
 const Icon = styled.div`
@@ -48,10 +49,12 @@ export default observer(function FloatPanel({map, isMouseZoom, setIsMouseZoom, i
   const onCenterMap = () => {
     let minX = Number.MAX_SAFE_INTEGER, maxY = Number.MIN_SAFE_INTEGER, maxX = maxY, minY = minX;
     for (let node of map.tree.nodes) {
+      if (!isWrapped(node)) {
       minX = Math.min(minX, node.x);
       maxX = Math.max(maxX, node.x);
       minY = Math.min(minY, node.y);
       maxY = Math.max(maxY, node.y);
+    }
     }
     map.coordination.setViewBox({
       left: (minX + maxX) / 2 - map.coordination.viewBox.width / 2, 
