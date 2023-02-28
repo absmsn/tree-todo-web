@@ -13,6 +13,7 @@ const getProgressColor = progress => {
 
 export default observer(function RangeProgress({ node }) {
   const [now, setNow] = useState(Date.now());
+  const [popoverShow, setPopoverShow] = useState(false);
 
   useEffect(() => {
     if (node.startTime && node.endTime) {
@@ -78,41 +79,44 @@ export default observer(function RangeProgress({ node }) {
     };
   }, [progress, node.x, node.y]);
 
-  let popoverContent = null, timeNow = Date.now(), timeFormat = "MM-DD HH:mm";
-  if (node.finished) {
-    const finishTime = dayjs(node.finishTime);
-    popoverContent = <>
-      <Badge color="green" text="已完成" className="mb-1" />
-      任务已于{finishTime.toNow(true)}前 ({finishTime.format(timeFormat)}) 完成
-    </>;
-  } else if (timeNow > node.endTime.getTime()) {
-    const end = dayjs(node.endTime);
-    popoverContent = <>
-      <Badge color="grey" text="已过期" className="mb-1" />
-      任务已于{end.toNow(true)}前 ({end.format(timeFormat)}) 过期
-    </>;
-  } else if (timeNow < node.startTime.getTime()) {
-    const start = dayjs(node.startTime);
-    popoverContent = <>
-      <Badge color="orange" text="未开始" className="mb-1" />
-      任务将于{start.fromNow(true)}后 ({start.format(timeFormat)}) 开始
-    </>;
-  } else {
-    popoverContent = <>
-      <Badge color="yellow" text="进行中" className="mb-1" />
-      <div className="mb-1">还剩{Math.ceil(progress / 360 * 100)}%的时间</div>
-      <div>
-        <span>{dayjs(node.endTime).fromNow()}结束</span>
-        <span>({dayjs(node.endTime).format(timeFormat)})</span>
-      </div>
-    </>
-  }
+  const popoverContent = useMemo(() => {
+    const timeNow = Date.now(), timeFormat = "MM-DD HH:mm";
+    if (node.finished) {
+      const finishTime = dayjs(node.finishTime);
+      return <>
+        <Badge color="green" text="已完成" className="mb-1" />
+        任务已于{finishTime.toNow(true)}前 ({finishTime.format(timeFormat)}) 完成
+      </>;
+    } else if (timeNow > node.endTime.getTime()) {
+      const end = dayjs(node.endTime);
+      return <>
+        <Badge color="grey" text="已过期" className="mb-1" />
+        任务已于{end.toNow(true)}前 ({end.format(timeFormat)}) 过期
+      </>;
+    } else if (timeNow < node.startTime.getTime()) {
+      const start = dayjs(node.startTime);
+      return <>
+        <Badge color="orange" text="未开始" className="mb-1" />
+        任务将于{start.fromNow(true)}后 ({start.format(timeFormat)}) 开始
+      </>;
+    } else {
+      return <>
+        <Badge color="yellow" text="进行中" className="mb-1" />
+        <div className="mb-1">还剩{Math.ceil(progress / 360 * 100)}%的时间</div>
+        <div>
+          <span>{dayjs(node.endTime).fromNow()}结束</span>
+          <span>({dayjs(node.endTime).format(timeFormat)})</span>
+        </div>
+      </>
+    }
+  }, [popoverShow]);
 
   return (
     <Popover
       trigger="hover"
       content={popoverContent}
       overlayClassName="tooltip-style range-progess"
+      onOpenChange={show => setPopoverShow(show)}
     >
       {
         // 当为360度时,起始和终止坐标重叠,无法确认绘制方向,使用circle
