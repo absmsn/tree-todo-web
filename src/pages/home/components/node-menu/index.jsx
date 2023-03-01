@@ -72,6 +72,7 @@ export default observer(function NodeMenu({
       parentId: node.id
     })).data;
     newNode.setId(nodeResult.id);
+    tree.setSelectedNode(newNode);
   };
 
   const changeChild = (e) => {
