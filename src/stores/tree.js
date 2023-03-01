@@ -113,6 +113,20 @@ export default class TreeStore {
     }
   }
 
+  changeNodeParent(node, newParent) {
+    const nodeIndex = node.parent.children.findIndex(c => c === node);
+    node.parent.children.splice(nodeIndex, 1);
+    const edgeIndex = this.edges.findIndex(e => {
+      return e.source === node.parent && e.target === node;
+    });
+    this.edges.splice(edgeIndex, 1);
+    node.setParent(newParent);
+
+    const edge = new EdgeStore(newParent, node, {...this.nodeStyle});
+    newParent.children.push(node);
+    this.edges.push(edge);
+  }
+
   unselectNode() {
     if (this.selectedNode) {
       this.selectedNode.setSelected(false);

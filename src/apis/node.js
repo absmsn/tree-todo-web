@@ -68,5 +68,10 @@ export default {
   },
   removeBackground(nodeId) {
     return instance.delete(`/node/${nodeId}/background`);
+  },
+  changeParent(nodeId, newParentId) {
+    this.edit(nodeId, {
+      parentId: newParentId
+    });
   }
 }

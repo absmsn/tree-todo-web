@@ -4,7 +4,7 @@ import { observer } from "mobx-react";
 import { Dropdown, message } from "antd";
 import { PLAIN_NODE_DEFAULT_SIZE } from "../../../../constants/geometry";
 import { getChildNodePosition, reArrangeTree } from "../../../../utils/graph";
-import { Add_CONDITION_TASK } from "../../../../constants/event";
+import { ADD_CONDITION_TASK, NODE_CHANGE_PARENT } from "../../../../constants/event";
 import { pointDistance } from "../../../../utils/math";
 import nodeAPI from "../../../../apis/node";
 import eventChannel from "../../../../utils/event";
@@ -21,7 +21,7 @@ import {
 import style from "./index.module.css";
 
 const baseDropdownItems = [
-  {key: "add-child", label: "添加子节点"},
+  {key: "add-child", label: "添加子任务"},
   {key: "edit-info", label: "修改信息"},
   {key: "comment", label: "编辑备注"},
   {key: "add-tag", label: "添加标签"},
@@ -30,6 +30,7 @@ const baseDropdownItems = [
   {key: "set-background", label: "设置背景"}
 ];
 
+const changeParentItem = {key: "change-parent", label: "更改父任务"};
 const markAsUnfinishedItem = {key: "mark-as-unfinished", label: "标记为未完成"};
 const markAsFinishedItem = {key: "mark-as-finished", label: "标记为已完成"};
 const removeNodeItem = {key: "remove-node", label: "删除节点"};
@@ -72,6 +73,11 @@ export default observer(function NodeMenu({
     })).data;
     newNode.setId(nodeResult.id);
   };
+
+  const changeChild = (e) => {
+    messageAPI.warning("点击新的父任务以更改,按下ESC键以取消!");
+    eventChannel.emit(NODE_CHANGE_PARENT, map.id, node, e);
+  }
 
   useEffect(() => {
     const onContextMenu = e => {
@@ -155,13 +161,16 @@ export default observer(function NodeMenu({
 
   // 通知tree添加一个前驱任务
   const addConditionTask = (e) => {
-    eventChannel.emit(Add_CONDITION_TASK, map.id, node, e);
+    eventChannel.emit(ADD_CONDITION_TASK, map.id, node, e);
   }
 
   const onClick = ({key, domEvent}) => {
     switch(key) {
       case "add-child":
         onAddChild();
+        break;
+      case "change-parent":
+        changeChild(domEvent);
         break;
       case "edit-info":
         onEditConfig();
@@ -212,6 +221,7 @@ export default observer(function NodeMenu({
             node?.backgroundImageURL && removeBackgroundItem,
             node?.finished ? markAsUnfinishedItem : markAsFinishedItem,
             node?.parent && removeNodeItem,
+            node?.parent && changeParentItem,
             !!node?.children.length && (node?.childrenWrapped ? expandChildrenItem : wrapChildrenItem)
           ],
           onClick: onClick

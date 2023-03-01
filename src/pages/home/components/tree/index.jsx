@@ -7,10 +7,15 @@ import ConditionLink from "../condition-link";
 import {
   isParentOfAnother,
   whichNodeIsPointIn,
-  getQuaraticBezierControlPoint
+  getQuaraticBezierControlPoint,
+  reArrangeTree
 } from "../../../../utils/graph";
 import { getPosRelatedNode, isWrapped } from "../../../../utils/node";
-import { Add_CONDITION_TASK, DRAG_TAG_END } from "../../../../constants/event";
+import {
+  DRAG_TAG_END,
+  ADD_CONDITION_TASK,
+  NODE_CHANGE_PARENT
+} from "../../../../constants/event";
 import { DarkModeContext } from "../../../main";
 import eventChannel from "../../../../utils/event";
 import nodeAPI from "../../../../apis/node";
@@ -86,9 +91,9 @@ const AddPath = observer(({ map, tree, svgRef }) => {
         window.addEventListener("keydown", keydown);
       }
     }
-    eventChannel.on(Add_CONDITION_TASK, startMove);
+    eventChannel.on(ADD_CONDITION_TASK, startMove);
     return (() => {
-      eventChannel.off(Add_CONDITION_TASK, startMove);
+      eventChannel.off(ADD_CONDITION_TASK, startMove);
     });
   }, []);
 
@@ -100,6 +105,61 @@ const AddPath = observer(({ map, tree, svgRef }) => {
     </path>
   )
 });
+
+const ChangeParent = ({ map, svgRef }) => {
+  useEffect(() => {
+    const startMove = (mapID, node) => {
+      if (mapID === map.id) {
+        const moving = e => {
+          const point = map.coordination.clientToSvg(e.clientX, e.clientY);
+          const target = whichNodeIsPointIn(map.tree, point.x, point.y);
+          if (target) {
+            if (target === node || target === node.parent || isParentOfAnother(target, node)) {
+              document.body.style.cursor = "no-drop";
+            } else {
+              document.body.style.cursor = "crosshair";
+            }
+          } else {
+            document.body.style.cursor = "";
+          }
+        }
+        const mousedown = e => {
+          const point = map.coordination.clientToSvg(e.clientX, e.clientY);
+          if (point) {
+            const target = whichNodeIsPointIn(map.tree, point.x, point.y);
+            if (target && target !== node || target !== node.parent || !isParentOfAnother(target, node)) {
+              map.tree.changeNodeParent(node, target);
+              reArrangeTree(map.tree);
+              nodeAPI.changeParent(node.id, target.id);
+            }
+          }
+          document.body.style.cursor = "";
+          removeListeners();
+        }
+        const keydown = e => {
+          if (e.key === "Esc" || e.key === "Escape") {
+            document.body.style.cursor = "";
+            removeListeners();
+          }
+        }
+        const removeListeners = () => {
+          svgRef.current.removeEventListener("mousemove", moving);
+          svgRef.current.removeEventListener("mousedown", mousedown);
+          window.removeEventListener("keydown", keydown);
+        }
+        svgRef.current.addEventListener("mousemove", moving);
+        svgRef.current.addEventListener("mousedown", mousedown);
+        window.addEventListener("keydown", keydown);
+      }
+    }
+    eventChannel.on(NODE_CHANGE_PARENT, startMove);
+    return (() => {
+      eventChannel.off(NODE_CHANGE_PARENT, startMove);
+    });
+  }, []);
+
+  return null;
+}
 
 export default observer(function Tree({ map, tree, coordination, svgRef }) {
   const { on: dark } = useContext(DarkModeContext);
@@ -147,6 +207,12 @@ export default observer(function Tree({ map, tree, coordination, svgRef }) {
         <AddPath
           map={map}
           tree={tree}
+          svgRef={svgRef}
+        />
+      }
+      {
+        <ChangeParent 
+          map={map}
           svgRef={svgRef}
         />
       }
