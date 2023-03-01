@@ -47,7 +47,7 @@ export function getQuaraticBezierControlPoint(start, end, parent) {
   const length = pointDistance(centerX, centerY, end.x, end.y) * (3 ** .5);
   const cross = crossProduct(offsetX, offsetY, parent.x - start.x, parent.y - start.y);
   // 控制点和父节点中心分别在start和end连线的两侧
-  const rotatedTheta = theta - Math.sign(cross) * (Math.PI / 2);
+  const rotatedTheta = theta - (Math.sign(cross) || 1) * (Math.PI / 2);
   return {
     x: centerX + Math.cos(rotatedTheta) * length,
     y: centerY + Math.sin(rotatedTheta) * length
